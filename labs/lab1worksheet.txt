@@ -1,0 +1,44 @@
+Andre LaFleur – u0669715
+CS4400 Spring 2017 Lab1 Worksheet:
+
+1. Copy your simple C program below.
+
+#include<stdio.h>
+
+int main(){
+  printf("hello world\n");
+  return 0;
+}
+
+2. What is the index in to the argv array of the first argument you passed to your program?
+
+/* TODO: What is this question asking? */
+
+3. What is the first string in the argv array?
+
+The name of the executable.
+
+4. What is printed? Is this what you expect? What does this tell you about the data type of the “name” variable?
+
+The bash variable for the command line argument that was passed ($1), the memory address of the
+string, and the value of the string. For the command `./hello_to Joey`, I got the following
+output:
+
+$1 = 0x7fffffffe717 "Joey"
+
+5. What is printed by “x/6c name”?
+
+0x7fffffffe717: 65 'A'  108 'l' 105 'i' 99 'c'  101 'e' 0 '\000'
+
+6. By how much did the address change after adding 2 to it?
+
+The address changed by two - it became 0x7fffffffe719.
+
+7. What does this tell you about the size of the data type (char) that “name” points to?
+
+The data type char is a single byte.
+
+8. If we had a variable “x” of type int*, and we execute the statement x += 2, by how much would the value of “x” change?
+
+The value of x would change by 8 - that is, the address stored in the variable x automatically moves over by two * size of
+an integer.
