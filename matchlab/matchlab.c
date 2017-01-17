@@ -19,7 +19,7 @@ int match_b(char*);
 int match_c(char*);
 
 /* Replace functions */
-void replace_b(char*, char*);
+void replace_b(char*, char*, int);
 void replace_c(char*, char*);
 
 
@@ -62,8 +62,9 @@ int main(int argc, char* argv[]){
       if(match_type == 'a'){
 
       } else if(match_type == 'b'){
-	char buffer[(int) strlen(pattern) * 2];
-	replace_b(buffer, pattern);
+	int size = (int) strlen(pattern) * 2;
+	char buffer[size];
+	replace_b(buffer, pattern, size);
 	printf("%s\n", buffer);
       } else {
 
@@ -260,19 +261,21 @@ int match_c(char* string){
   return 0; // TODO
 }
 
-void replace_b(char* buffer, char* original){
+void replace_b(char* buffer, char* original, int dest_size){
   int i;
   for(i = 0; i < strlen(original); i++){
     buffer[i * 2] = original[i];
   }
 
   char num = '0';
-  for(i = 1; i < strlen(buffer); i += 2){
+  for(i = 1; i < dest_size; i += 2){
     buffer[i] = num++;
 
     if(num == '8')
       num = '0';
   }
+
+  buffer[dest_size + 1] = '\0';
 }
 
 void replace_c(char* buffer, char* original){
