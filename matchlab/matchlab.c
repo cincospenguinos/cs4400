@@ -11,6 +11,8 @@
 int is_numeric(char);
 int is_upcase(char);
 void grow_str(char*, char*);
+int size_of(char*);
+
 
 /* Matching functions */
 int match_a(char*);
@@ -97,9 +99,18 @@ int is_upcase(char a){
   return 1;
 }
 
+/**
+ * Grows the string passed.
+ *
+ * TODO: This can be a lot nicer
+ */
 void grow_str(char* tmp, char* source){
   strcpy(tmp, source);
   memcpy(source, tmp, sizeof(tmp));
+}
+
+int size_of(char* str){
+  return ((int) sizeof(str) / sizeof(str[0]));
 }
 
 /**
@@ -202,7 +213,7 @@ int match_b(char* string){
       if(i << 31 >= 0) // If this is an even index
 	capital_letters[cap_index++] = c;
 
-      if(capital_letters[cap_index] == '\0'){
+      if(cap_index == size_of(capital_letters)){
 	int l = (int)strlen(capital_letters) * 2;
 	char tmp[l];
 	grow_str(tmp, capital_letters);
@@ -296,7 +307,7 @@ int match_c(char* string){
 	i--;
       } else return 0;
 
-      if(capital_letters[cap_index] == '\0'){
+      if(cap_index == size_of(capital_letters)){
 	char tmp[(int)strlen(capital_letters) * 2];
 	grow_str(tmp, capital_letters);
       }
@@ -317,7 +328,7 @@ int match_c(char* string){
 	i--;
       } else return 0;
 
-      if(reverse_letters[reverse_index] == '\0'){
+      if(reverse_index == size_of(reverse_letters)){
         char tmp[(int)strlen(reverse_letters) * 2];
         grow_str(tmp, reverse_letters);
       }
@@ -335,7 +346,7 @@ int match_c(char* string){
 
   if(!odd_i)
     return 0;
-  if(((int)strlen(capital_letters)) << 31 < 0) // Only odd capital letters
+  if((size_of(capital_letters)) << 31 < 0) // Only odd capital letters
     return 0;
   if(t_letters < 3 || t_letters > 6)
     return 0;
@@ -360,7 +371,7 @@ int match_c(char* string){
 
   // And now let's compare
   i = 0;
-  while(j > 0){
+  while(is_upcase(reverse_letters[j]) || is_upcase(capital_letters[i])){
     if(capital_letters[i++] != reverse_letters[j--])
       return 0;
   }
