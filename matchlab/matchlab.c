@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include "tests.c"
 
+
+
 /**
  * Indicates whether or not the char passed is a number or not.
  */

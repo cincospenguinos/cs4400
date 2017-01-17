@@ -5,6 +5,8 @@
  */
 
 int match_a(char*);
+int match_b(char*);
+
 
 int test_a(){
   int failures = 0;
@@ -14,6 +16,13 @@ int test_a(){
   if(match_a("eezzz")) failures++;
   if(match_a("eeeeeeeeeeeezzzz7654")) failures++;
   
+  return failures;
+}
+
+int test_b(){
+  int failures = 0;
+  
+
   return failures;
 }
 
