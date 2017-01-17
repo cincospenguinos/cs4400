@@ -4,14 +4,13 @@
  * 
  * Main file for homework1.
  */
-#include <stdio.h>
+#include<stdio.h>
 #include<string.h>
-#include "tests.c"
 
 /* Utility functions */
 int is_numeric(char);
 int is_upcase(char);
-//int strlen(char*);
+void grow_str(char*, char*);
 
 /* Matching functions */
 int match_a(char*);
@@ -60,24 +59,20 @@ int main(int argc, char* argv[]){
 
     if(match){
       if(match_type == 'a'){
-
+	printf("%s\n", pattern);
       } else if(match_type == 'b'){
 	int size = (int) strlen(pattern) * 2;
 	char buffer[size];
 	replace_b(buffer, pattern, size);
 	printf("%s\n", buffer);
       } else {
-
+	
       }
-      //printf("yes\n");
     } else if(!t_enabled) {
       printf("no\n");
     }
   }
 
-
-  // Uncomment this to run some tests
-  //run_tests();
   return 0;
 }
 
@@ -100,6 +95,11 @@ int is_upcase(char a){
     return 0;
 
   return 1;
+}
+
+void grow_str(char* tmp, char* source){
+  strcpy(tmp, source);
+  memcpy(source, tmp, sizeof(tmp));
 }
 
 /**
@@ -174,7 +174,6 @@ int match_b(char* string){
   int odd_upcase = 0;
   int odd_p = 0;
   int total_digits = 0;
-  // TODO: We need a char[] of variable length to dump all the even indexed capital letters into
   char capital_letters[10];
   int cap_index = 0;
 
@@ -206,8 +205,7 @@ int match_b(char* string){
       if(capital_letters[cap_index] == '\0'){
 	int l = (int)strlen(capital_letters) * 2;
 	char tmp[l];
-	strcpy(tmp, capital_letters);
-	memcpy(capital_letters, tmp, sizeof(tmp));
+	grow_str(tmp, capital_letters);
       }
       break;
     case 2:  // Look for p
@@ -256,9 +254,118 @@ int match_b(char* string){
   return 1; // TODO
 }
 
-int match_c(char* string){
 
-  return 0; // TODO
+/**
+ * Matches the pattern given the following:
+ *
+ * odd number of "i"
+ * odd number of caps
+ * between three and six reps of "t"
+ * the caps, reversed
+ * between one and three numbers
+ */
+int match_c(char* string){
+  int mode = 0; // 0 = i, 1 = caps, 2 = t, 3 = caps reversed, 4 = numbers
+  int i = 0;
+
+  int odd_i = 0;
+  char capital_letters[10];
+  int cap_index = 0;
+  int t_letters = 0;
+  char reverse_letters[10];
+  int reverse_index = 0;
+  int numbers = 0;
+
+  while(string[i] != '\0'){
+    char c = string[i];
+
+    switch(mode){
+    case 0:
+      if(c == 'i')
+	odd_i = odd_i ^ 1;
+      else if(is_upcase(c)){
+	mode++;
+	i--;
+      } else return 0;
+      break;
+    case 1:
+      if(is_upcase(c))
+	capital_letters[cap_index++] = c;
+      else if(c == 't'){
+	mode++;
+	i--;
+      } else return 0;
+
+      if(capital_letters[cap_index] == '\0'){
+	char tmp[(int)strlen(capital_letters) * 2];
+	grow_str(tmp, capital_letters);
+      }
+      break;
+    case 2:
+      if(c == 't')
+	t_letters++;
+      else if(is_upcase(c)){
+	mode++;
+	i--;
+      } else return 0;
+      break;
+    case 3:
+      if(is_upcase(c))
+	reverse_letters[reverse_index++] = c;
+      else if(is_numeric(c)){
+	mode++;
+	i--;
+      } else return 0;
+
+      if(reverse_letters[reverse_index] == '\0'){
+        char tmp[(int)strlen(reverse_letters) * 2];
+        grow_str(tmp, reverse_letters);
+      }
+      
+      break;
+    case 4:
+      if(is_numeric(c))
+	numbers++;
+      else return 0;
+      break;
+    }
+
+    i++;
+  }
+
+  if(!odd_i)
+    return 0;
+  if(((int)strlen(capital_letters)) << 31 < 0) // Only odd capital letters
+    return 0;
+  if(t_letters < 3 || t_letters > 6)
+    return 0;
+  if(numbers < 1 || numbers > 3)
+    return 0;
+
+  // Now let's check out the capital letters
+  i = 0;
+  int j = (int) strlen(reverse_letters) - 1;
+
+  // First let's make sure that the arrays are setup properly
+  while(is_upcase(capital_letters[i])){
+    i++;
+  }
+  capital_letters[i] = '\0';
+
+  i = 0;
+  while(is_upcase(reverse_letters[i])){
+    i++;
+  }
+  reverse_letters[i] = '\0';
+
+  // And now let's compare
+  i = 0;
+  while(j > 0){
+    if(capital_letters[i++] != reverse_letters[j--])
+      return 0;
+  }
+
+  return 1; // TODO
 }
 
 void replace_b(char* buffer, char* original, int dest_size){
