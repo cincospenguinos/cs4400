@@ -53,6 +53,8 @@ int main(int argc, char* argv[]){
       break;
     case 'c':
       match = match_c(pattern);
+      if(!match)
+	match = match_c(pattern);
       break;
     default:
       printf("That match type does not exist.\n");
@@ -68,7 +70,9 @@ int main(int argc, char* argv[]){
 	replace_b(buffer, pattern, size);
 	printf("%s\n", buffer);
       } else {
-	
+	char s[size_of(pattern)];
+	replace_c(s, pattern);
+	printf("%s\n", s);
       }
     } else if(!t_enabled) {
       printf("no\n");
@@ -397,5 +401,49 @@ void replace_b(char* buffer, char* original, int dest_size){
 }
 
 void replace_c(char* buffer, char* original){
+  strcpy(buffer, original);
+  
+  // Get rid of the first E
+  int i;
+  int first_e_flag = 0;
+  for(i = 0; i < size_of(buffer); i++){
+    if(buffer[i] == 'E' || buffer[i] == 'e'){
+      buffer[i] = '#';
+      first_e_flag = 1;
+      break;
+    }
+  }
+  
+  // Get rid of the last E
+  int last_e_flag = 0;
+  for(i = size_of(buffer); i >= 0; i--){
+    if(buffer[i] == 'E' || buffer[i] == 'e'){
+      buffer[i] = '#';
+      last_e_flag = 1;
+      break;
+    }
+  }
+
+  if(!first_e_flag && !last_e_flag)
+    return;
+
+  int new_size = size_of(buffer);
+  if(first_e_flag)
+    new_size--;
+  if(last_e_flag)
+    new_size--;
+
+  char tmp[new_size];
+  i = 0;
+  int j = 0;
+  while(j < size_of(buffer)){
+    if(buffer[j] != '#')
+      tmp[i++] = buffer[j];
+
+    j++;
+  }
+
+  strcpy(buffer, tmp);
+
   // TODO
 }
