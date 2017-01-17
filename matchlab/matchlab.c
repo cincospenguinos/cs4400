@@ -5,12 +5,13 @@
  * Main file for homework1.
  */
 #include <stdio.h>
+#include<string.h>
 #include "tests.c"
 
 /* Utility functions */
 int is_numeric(char);
 int is_upcase(char);
-int strlen(char*);
+//int strlen(char*);
 
 /* Matching functions */
 int match_a(char*);
@@ -165,6 +166,8 @@ int match_b(char* string){
   int odd_p = 0;
   int total_digits = 0;
   // TODO: We need a char[] of variable length to dump all the even indexed capital letters into
+  char capital_letters[10];
+  int cap_index = 0;
 
   int i = 0;
   int mode = 0; // 0 = l, 1 = uppercase, 2 = p, 3 = decimal digits, 4 = extra uppercase letters
@@ -181,14 +184,61 @@ int match_b(char* string){
       } else return 0;
       break;
     case 1: // Look for uppercase
+      if(is_upcase(c))
+	odd_upcase = odd_upcase ^ 1;
+      else if(c == 'p'){
+	i--;
+	mode++;
+      } else return 0;
+
+      if(i << 31 >= 0) // If this is an even index
+	capital_letters[cap_index++] = c;
+	
+      printf("Got here\n");
+
+      if(capital_letters[cap_index] == '\0'){
+	int l = (int)strlen(capital_letters) * 2;
+	char tmp[l];
+	strcpy(tmp, capital_letters);
+	memcpy(capital_letters, tmp, sizeof(tmp));
+      }
       break;
     case 2:  // Look for p
+      if(c == 'p')
+	odd_p = odd_p ^ 1;
+      else if(is_numeric(c)){
+	i--;
+	mode++;
+      } else return 0;
       break;
     case 3: // Look for digits
+      if(is_numeric(c))
+	total_digits++;
+      else {
+	i--;
+	mode++;
+      }
       break;
     case 4: // Look for uppercase letters
+      while(0){} // This was required to get the compiler to work. I have no clue why.
+      int j = 0;
+      int flag = 0;
+      for(; j < strlen(capital_letters); j++){
+	if(c == capital_letters[j]){
+	  flag = 1;
+	  break;
+	}
+      }
+
+      if(!flag)
+	return 0;
+
       break;
     }
+
+    printf("%i\n", i);
+
+    i++;
   }
 
   if(!even_l)
@@ -199,8 +249,6 @@ int match_b(char* string){
     return 0;
   if(total_digits < 1 || total_digits > 3)
     return 0;
-
-  // TODO: Check and see if the characters provided at the end of the string are those in even indeces
 
   return 1; // TODO
 }
