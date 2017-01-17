@@ -19,8 +19,8 @@ int match_b(char*);
 int match_c(char*);
 
 /* Replace functions */
-char* replace_b(char*, char*);
-char* replace_c(char*, char*);
+void replace_b(char*, char*);
+void replace_c(char*, char*);
 
 
 int main(int argc, char* argv[]){
@@ -59,7 +59,16 @@ int main(int argc, char* argv[]){
     }
 
     if(match){
-      printf("yes\n");
+      if(match_type == 'a'){
+
+      } else if(match_type == 'b'){
+	char buffer[(int) strlen(pattern) * 2];
+	replace_b(buffer, pattern);
+	printf("%s\n", buffer);
+      } else {
+
+      }
+      //printf("yes\n");
     } else if(!t_enabled) {
       printf("no\n");
     }
@@ -161,7 +170,6 @@ int match_a(char* string){
  * the same characters as the odd-positioned characters in X.
  */
 int match_b(char* string){
-  int even_l = 1;
   int odd_upcase = 0;
   int odd_p = 0;
   int total_digits = 0;
@@ -177,7 +185,7 @@ int match_b(char* string){
     switch(mode){
     case 0: // Look for l
       if(c == 'l')
-	even_l = even_l ^ 1;
+	;
       else if (is_upcase(c)) {
 	i--;
 	mode++;
@@ -193,8 +201,6 @@ int match_b(char* string){
 
       if(i << 31 >= 0) // If this is an even index
 	capital_letters[cap_index++] = c;
-	
-      printf("Got here\n");
 
       if(capital_letters[cap_index] == '\0'){
 	int l = (int)strlen(capital_letters) * 2;
@@ -236,13 +242,9 @@ int match_b(char* string){
       break;
     }
 
-    printf("%i\n", i);
-
     i++;
   }
 
-  if(!even_l)
-    return 0;
   if(!odd_upcase)
     return 0;
   if(!odd_p)
@@ -256,4 +258,23 @@ int match_b(char* string){
 int match_c(char* string){
 
   return 0; // TODO
+}
+
+void replace_b(char* buffer, char* original){
+  int i;
+  for(i = 0; i < strlen(original); i++){
+    buffer[i * 2] = original[i];
+  }
+
+  char num = '0';
+  for(i = 1; i < strlen(buffer); i += 2){
+    buffer[i] = num++;
+
+    if(num == '8')
+      num = '0';
+  }
+}
+
+void replace_c(char* buffer, char* original){
+  // TODO
 }
