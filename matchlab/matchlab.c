@@ -7,6 +7,68 @@
 #include <stdio.h>
 #include "tests.c"
 
+/* Utility functions */
+int is_numeric(char);
+int is_upcase(char);
+int strlen(char*);
+
+/* Matching functions */
+int match_a(char*);
+int match_b(char*);
+int match_c(char*);
+
+/* Replace functions */
+char* replace_b(char*, char*);
+char* replace_c(char*, char*);
+
+
+int main(int argc, char* argv[]){
+  char match_type = 'a'; // match a, b, or c
+  int t_enabled = 0; // -t disabled by default
+  int index; // starting index of strings to match
+  for(index = 1; index < argc; index++){
+    char* argument = argv[index];
+    
+    if(argument[0] != '-')
+      break;
+
+    if(argument[1] == 't')
+      t_enabled = 1;
+    else
+      match_type = argument[1];
+  }
+
+  for(; index < argc; index++){
+    char* pattern = argv[index];
+    int match = 0;
+
+    switch(match_type){
+    case 'a':
+      match = match_a(pattern);
+      break;
+    case 'b':
+      match = match_b(pattern);
+      break;
+    case 'c':
+      match = match_c(pattern);
+      break;
+    default:
+      printf("That match type does not exist.\n");
+      return 1;
+    }
+
+    if(match){
+      printf("yes\n");
+    } else if(!t_enabled) {
+      printf("no\n");
+    }
+  }
+
+
+  // Uncomment this to run some tests
+  //run_tests();
+  return 0;
+}
 
 
 /**
@@ -146,52 +208,4 @@ int match_b(char* string){
 int match_c(char* string){
 
   return 0; // TODO
-}
-
-int main(int argc, char* argv[]){
-  char match_type = 'a'; // match a, b, or c
-  int t_enabled = 0; // -t disabled by default
-  int index; // starting index of strings to match
-  for(index = 1; index < argc; index++){
-    char* argument = argv[index];
-    
-    if(argument[0] != '-')
-      break;
-
-    if(argument[1] == 't')
-      t_enabled = 1;
-    else
-      match_type = argument[1];
-  }
-
-  for(; index < argc; index++){
-    char* pattern = argv[index];
-    int match = 0;
-
-    switch(match_type){
-    case 'a':
-      match = match_a(pattern);
-      break;
-    case 'b':
-      match = match_b(pattern);
-      break;
-    case 'c':
-      match = match_c(pattern);
-      break;
-    default:
-      printf("That match type does not exist.\n");
-      return 1;
-    }
-
-    if(match){
-      printf("yes\n");
-    } else if(!t_enabled) {
-      printf("no\n");
-    }
-  }
-
-
-  // Uncomment this to run some tests
-  //run_tests();
-  return 0;
 }
