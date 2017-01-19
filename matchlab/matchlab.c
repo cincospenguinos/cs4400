@@ -401,49 +401,37 @@ void replace_b(char* buffer, char* original, int dest_size){
 }
 
 void replace_c(char* buffer, char* original){
-  strcpy(buffer, original);
-  
-  // Get rid of the first E
+  // Let's figure out where our E's are
+  int first_e_index = -1;
+  int last_e_index = -1;
+
   int i;
-  int first_e_flag = 0;
-  for(i = 0; i < size_of(buffer); i++){
-    if(buffer[i] == 'E' || buffer[i] == 'e'){
-      buffer[i] = '#';
-      first_e_flag = 1;
-      break;
-    }
-  }
-  
-  // Get rid of the last E
-  int last_e_flag = 0;
-  for(i = size_of(buffer); i >= 0; i--){
-    if(buffer[i] == 'E' || buffer[i] == 'e'){
-      buffer[i] = '#';
-      last_e_flag = 1;
+  for(i = 0; i < strlen(original); i++){
+    if(original[i] == 'E' || original[i] == 'e'){
+      first_e_index = i;
       break;
     }
   }
 
-  if(!first_e_flag && !last_e_flag)
+  for(i = strlen(original) - 1; i >= 0; i--){
+    if(original[i] == 'E' || original[i] == 'e'){
+      last_e_index = i;
+      break;
+    }
+  }
+
+  // Return if no Es
+  if(first_e_index == -1 && last_e_index == -1)
     return;
 
-  int new_size = size_of(buffer);
-  if(first_e_flag)
-    new_size--;
-  if(last_e_flag)
-    new_size--;
-
-  char tmp[new_size];
-  i = 0;
+  // Now let's copy over the string, char by char
   int j = 0;
-  while(j < size_of(buffer)){
-    if(buffer[j] != '#')
-      tmp[i++] = buffer[j];
-
-    j++;
+  for(i = 0; i < strlen(original); i++){
+    if(i != first_e_index && i != last_e_index){
+      buffer[j++] = original[i];
+    }
   }
 
-  strcpy(buffer, tmp);
-
-  // TODO
+  // End the string with a null char
+  buffer[strlen(buffer)] = '\0';
 }
