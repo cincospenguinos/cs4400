@@ -1,0 +1,15 @@
+Andre LaFleur - u0669715
+CS4400 Spring 2017 Lab2 Worksheet:
+
+1. What is the password for part_one that avoids the call to fail?
+
+"hello_world\n"
+
+2. What is the password for part_two that avoids the call to fail?
+
+The number 5.
+
+3. What is the password for part_three that avoids the call to fail?
+
+The number 6.
+I pwnd n00bz!

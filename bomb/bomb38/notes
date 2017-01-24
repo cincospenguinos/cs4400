@@ -1,0 +1,7 @@
+* explode_bomb is probably the function that reports a failure. Set a breakpoint there
+* The second phase requires six integers
+  - The first needs to be non-negative
+  - The second must be 2
+  - The function loads the six integers into an array, whose address is at %rbp
+  - It looks like the function checks to see if the current number is twice the previous
+  - The second password is 1 2 4 7 11 16
