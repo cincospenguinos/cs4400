@@ -1,0 +1,39 @@
+Andre LaFleur
+CS4400 Spring 2017 Lab3 Worksheet:
+
+1. What is the gdb command you used to determine the location of the return address?
+
+print $rsp.
+
+2. What is the location of the return address?
+
+0x7fffffffe1c8
+
+3. What instruction does the return address point to? (HINT: dereference the return address using x/x)
+
+The instruction immediately after the call to sum_vals() at address 0x004006bf.
+
+4. What is the address of the vals_to_sum array, or in other words, the address of the first item in the array?
+
+0x7fffffffe1a0
+
+5. How far away is this from the location of the return address?
+
+40 bytes
+
+6. Considering your answer to question 5, how many long ints will fit in that many bytes?
+
+5 long integers.
+
+7. Copy the full input to the program that casues execution to jump to the “nevercalled” function.
+
+How many numbers to sum?
+6
+1
+1
+1
+1
+1
+4195993
+How did you get here?!?!
+[Inferior 1 (process 7404) exited with code 01]

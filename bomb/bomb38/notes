@@ -5,3 +5,4 @@
   - The function loads the six integers into an array, whose address is at %rbp
   - It looks like the function checks to see if the current number is twice the previous
   - The second password is 1 2 4 7 11 16
+* The third phase requires an int, a char, and an int --> just three args
