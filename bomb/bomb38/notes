@@ -6,3 +6,21 @@
   - It looks like the function checks to see if the current number is twice the previous
   - The second password is 1 2 4 7 11 16
 * The third phase requires an int, a char, and an int --> just three args
+* The fourth phase takes two integers
+    - The first one is a 2
+    - The second number is thrown into func4 with a second argument of 6
+    - The second argument decides how many times we move through func4 recursively
+    - Every recursive jump doesn't increment the first parameter ($esi) at all
+    - The main set of recursive jumps adds some amount each time: pattern 2, 8, 14, 24, 40
+* The sixth phase requires 6 integers
+  - The integers cannot be equal to one another - they must be unique
+  - It looks like we are going through an array of structures. Below is each of the nodes as I get them
+
+0x604340 <node6>:       0x00000352      0x00000006      0x00000000
+0x604330 <node5>:       0x00000322      0x00000005      0x00604340
+0x604320 <node4>:       0x00000262      0x00000004      0x00604330
+0x604310 <node3>:       0x000000d4      0x00000003      0x00604320
+0x604300 <node2>:       0x0000026f      0x00000002      0x00604310
+0x6042f0 <node1>:       0x000002aa      0x00000001      0x00604300
+
+6 5 1 2 4 3
