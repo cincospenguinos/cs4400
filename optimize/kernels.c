@@ -69,7 +69,7 @@ void complex(int dim, pixel *src, pixel *dest)
  *     registered test function.  
  *********************************************************************/
 
-void register_complex_functions() {/*
+void register_complex_functions() {/* TODO: Uncomment this
   add_complex_function(&complex, complex_descr);
   add_complex_function(&naive_complex, naive_complex_descr);*/
 }
@@ -102,10 +102,10 @@ static pixel weighted_combo(int dim, int i, int j, pixel *src)
       if ((ii + i < dim) && (jj + j < dim)) 
       {
 	num_neighbors++;
-	pixel p = src[RIDX(ii + i, jj + j, dim)];
-	red += (int) p.red;
-	green += (int) p.green;
-	blue += (int) p.blue;
+	current_pixel = src[RIDX(ii + i, jj + j, dim)];
+	red += (int) current_pixel.red;
+	green += (int) current_pixel.green;
+	blue += (int) current_pixel.blue;
       }
     }
   }
@@ -137,20 +137,6 @@ void naive_motion(int dim, pixel *src, pixel *dst)
       dst[RIDX(i, j, dim)] = weighted_combo(dim, i, j, src);
 }
 
-char first_motion_descr[] = "first_motion: First optomization of motion";
-void first_motion(int dim, pixel *src, pixel *dst) 
-{
-  int j;
-  int i = 0;
-  int ridx;
-  do {
-    ridx = i * dim;
-    for (j = 0; j < dim; j++)
-      dst[ridx + j] = weighted_combo(dim, i, j, src);
-    i++;
-  } while (i < dim);
-}
-
 /*
  * motion - Your current working version of motion. 
  * IMPORTANT: This is the version you will be graded on
@@ -159,7 +145,23 @@ char motion_descr[] = "motion: Current working version";
 void motion(int dim, pixel *src, pixel *dst) 
 {
   // TODO: Figure this out
-  naive_motion(dim, src, dst);
+  //int sets_of_32 = dim >> 5;
+  //printf("%d\t%d\n", dim, sets_of_32);
+
+  int row, col, ridx;
+  for (row = 0; row < dim; row++){
+    ridx = row * dim;
+    for(col = 0; col < dim; col += 8){
+      dst[ridx + col] = weighted_combo(dim, row, col, src);
+      dst[ridx + col + 1] = weighted_combo(dim, row, col + 1, src);
+      dst[ridx + col + 2] = weighted_combo(dim, row, col + 2, src);
+      dst[ridx + col + 3] = weighted_combo(dim, row, col + 3, src);
+      dst[ridx + col + 4] = weighted_combo(dim, row, col + 4, src);
+      dst[ridx + col + 5] = weighted_combo(dim, row, col + 5, src);
+      dst[ridx + col + 6] = weighted_combo(dim, row, col + 6, src);
+      dst[ridx + col + 7] = weighted_combo(dim, row, col + 7, src);
+    }
+  }
 }
 
 /********************************************************************* 
@@ -173,5 +175,4 @@ void motion(int dim, pixel *src, pixel *dst)
 void register_motion_functions() {
   add_motion_function(&motion, motion_descr);
   add_motion_function(&naive_motion, naive_motion_descr);
-  add_motion_function(&first_motion, first_motion_descr);
 }
