@@ -14,6 +14,18 @@ student_t student = {
   "u0669715@utah.edu",  /* Email address */
 };
 
+typedef struct {
+  int red;
+  int green;
+  int blue;
+} pixel_int;
+
+void convert_pixel(pixel *src, pixel_int *dst){
+  dst->red = (int)src->red;
+  dst->green = (int)src->green;
+  dst->blue = (int)src->blue;
+}
+
 /***************
  * COMPLEX KERNEL
  ***************/
@@ -57,8 +69,23 @@ void naive_complex(int dim, pixel *src, pixel *dest)
 char complex_descr[] = "complex: Current working version";
 void complex(int dim, pixel *src, pixel *dest)
 {
-  // TODO: Figure this out
-  naive_complex(dim, src, dest);
+  // TODO: This
+  int i, j, i1, j1, color;
+  pixel_int *tmp;
+
+  for(i = 0; i < dim; i++){
+    i1 = dim - i - 1;
+    for(j = 0; j < dim; j++)
+    {
+      j1 = dim - j - 1;
+      convert_pixel(&src[RIDX(i, j, dim)], tmp);
+      color = (tmp->red + tmp->green + tmp->blue) / 3;
+
+      dest[RIDX(j1, i1, dim)].red = color;
+      dest[RIDX(j1, i1, dim)].green = color;
+      dest[RIDX(j1, i1, dim)].blue = color;
+    }
+  }
 }
 
 /*********************************************************************
@@ -69,9 +96,9 @@ void complex(int dim, pixel *src, pixel *dest)
  *     registered test function.  
  *********************************************************************/
 
-void register_complex_functions() {/* TODO: Uncomment this
+void register_complex_functions() {
   add_complex_function(&complex, complex_descr);
-  add_complex_function(&naive_complex, naive_complex_descr);*/
+  add_complex_function(&naive_complex, naive_complex_descr);
 }
 
 
@@ -172,7 +199,7 @@ void motion(int dim, pixel *src, pixel *dst)
  *     registered test function.  
  *********************************************************************/
 
-void register_motion_functions() {
+void register_motion_functions() {/*
   add_motion_function(&motion, motion_descr);
-  add_motion_function(&naive_motion, naive_motion_descr);
+  add_motion_function(&naive_motion, naive_motion_descr);*/
 }
