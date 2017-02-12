@@ -73,71 +73,32 @@ char complex_descr[] = "complex: Current working version";
 void complex(int dim, pixel *src, pixel *dest)
 {
   // TODO: This
-  int i, j, i1, j1, color, other_tmp;
+  int i, j, i1, j1, color, tmp;
   pixel_int *pixel;
 
   for(i = 0; i < dim; i++){
     i1 = dim - i - 1;
-    for(j = 0; j < dim; j++)
+    for(j = 0; j < dim; j += 2)
     {
       j1 = dim - j - 1;
       convert_pixel(&src[RIDX(i, j, dim)], pixel);
-      other_tmp = pixel->red + pixel->green + pixel->blue;
-      color = other_tmp / 3;
+      tmp = pixel->red + pixel->green + pixel->blue;
+      color = tmp / 3;
 
       dest[RIDX(j1, i1, dim)].red = color;
       dest[RIDX(j1, i1, dim)].green = color;
       dest[RIDX(j1, i1, dim)].blue = color;
 
-      j++;
-
-      j1 = dim - j - 1;
-      convert_pixel(&src[RIDX(i, j, dim)], pixel);
-      other_tmp = pixel->red + pixel->green + pixel->blue;
-      color = other_tmp / 3;
+      j1 = dim - (j + 1) - 1;
+      convert_pixel(&src[RIDX(i, j + 1, dim)], pixel);
+      tmp = pixel->red + pixel->green + pixel->blue;
+      color = tmp / 3;
 
       dest[RIDX(j1, i1, dim)].red = color;
       dest[RIDX(j1, i1, dim)].green = color;
       dest[RIDX(j1, i1, dim)].blue = color;
     }
   }
-}
-
-char other_complex_descr[] = "complex: Some other version";
-void other_complex(int dim, pixel *src, pixel *dest)
-{
-  int i, j;
-
-  for(i = 0; i < dim; i++)
-    for(j = 0; j < dim; j++)
-    {
-
-      dest[RIDX(dim - j - 1, dim - i - 1, dim)].red = ((int)src[RIDX(i, j, dim)].red +
-						      (int)src[RIDX(i, j, dim)].green +
-						      (int)src[RIDX(i, j, dim)].blue) / 3;
-      
-      dest[RIDX(dim - j - 1, dim - i - 1, dim)].green = ((int)src[RIDX(i, j, dim)].red +
-							(int)src[RIDX(i, j, dim)].green +
-							(int)src[RIDX(i, j, dim)].blue) / 3;
-      
-      dest[RIDX(dim - j - 1, dim - i - 1, dim)].blue = ((int)src[RIDX(i, j, dim)].red +
-						       (int)src[RIDX(i, j, dim)].green +
-						       (int)src[RIDX(i, j, dim)].blue) / 3;
-      
-      j++;
-
-      dest[RIDX(dim - j - 1, dim - i - 1, dim)].red = ((int)src[RIDX(i, j, dim)].red +
-						      (int)src[RIDX(i, j, dim)].green +
-						      (int)src[RIDX(i, j, dim)].blue) / 3;
-      
-      dest[RIDX(dim - j - 1, dim - i - 1, dim)].green = ((int)src[RIDX(i, j, dim)].red +
-							(int)src[RIDX(i, j, dim)].green +
-							(int)src[RIDX(i, j, dim)].blue) / 3;
-      
-      dest[RIDX(dim - j - 1, dim - i - 1, dim)].blue = ((int)src[RIDX(i, j, dim)].red +
-						       (int)src[RIDX(i, j, dim)].green +
-						       (int)src[RIDX(i, j, dim)].blue) / 3;
-    }
 }
 
 /*********************************************************************
@@ -150,7 +111,6 @@ void other_complex(int dim, pixel *src, pixel *dest)
 
 void register_complex_functions() {
   add_complex_function(&complex, complex_descr);
-  add_complex_function(&other_complex, other_complex_descr);
   add_complex_function(&naive_complex, naive_complex_descr);
 }
 

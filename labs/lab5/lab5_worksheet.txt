@@ -1,0 +1,17 @@
+CS4400 Spring 2017 Lab5 Worksheet: 
+
+1. What is the baseline CPE? 
+
+25.925853
+
+2. Suppose the address of src is X. In terms of X, give any value of dst that would cause aliasing. In other words, when the window_average function is applied to (dst, src, len), it would not produce the expected result. Assume len >= 3.
+
+X + 4 bytes.
+
+3. What is the CPE of perf_tuning2?
+
+20.883313
+
+4. What is the CPE of perf_tuning3?
+
+8.197298
