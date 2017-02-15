@@ -101,6 +101,56 @@ void complex(int dim, pixel *src, pixel *dest)
   }
 }
 
+char chunks_complex_descr[] = "chunks_complex: Trying out 32x32 chunks";
+void chunks_complex(int dim, pixel *src, pixel *dest)
+{
+  int row, col, h, w, ridx, avg;
+  int chunk_length = (dim >> 5);
+  pixel tmp;
+
+  for(h = 0; h < chunk_length; h++){
+    for(w = 0; w < chunk_length; w++){
+      for(row = h * 32; row < h * 32 + 32; row++){
+	for(col = w * 32; col < w * 32 + 32; col++){
+	  tmp = src[RIDX(row, col, dim)];
+	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
+	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
+	  dest[ridx].red = avg;
+	  dest[ridx].green = avg;
+	  dest[ridx].blue = avg;
+
+	  col++;
+
+	  tmp = src[RIDX(row, col, dim)];
+	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
+	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
+	  dest[ridx].red = avg;
+	  dest[ridx].green = avg;
+	  dest[ridx].blue = avg;
+
+	  col++;
+
+	  tmp = src[RIDX(row, col, dim)];
+	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
+	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
+	  dest[ridx].red = avg;
+	  dest[ridx].green = avg;
+	  dest[ridx].blue = avg;
+
+	  col++;
+
+	  tmp = src[RIDX(row, col, dim)];
+	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
+	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
+	  dest[ridx].red = avg;
+	  dest[ridx].green = avg;
+	  dest[ridx].blue = avg;
+	}
+      }
+    }
+  }
+}
+
 /*********************************************************************
  * register_complex_functions - Register all of your different versions
  *     of the complex kernel with the driver by calling the
@@ -112,6 +162,7 @@ void complex(int dim, pixel *src, pixel *dest)
 void register_complex_functions() {
   add_complex_function(&complex, complex_descr);
   add_complex_function(&naive_complex, naive_complex_descr);
+  add_complex_function(&chunks_complex, chunks_complex_descr);
 }
 
 
