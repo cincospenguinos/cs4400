@@ -205,10 +205,10 @@ void chunks_complex(int dim, pixel *src, pixel *dest)
  *********************************************************************/
 
 void register_complex_functions() {
-  add_complex_function(&complex, complex_descr);
-  add_complex_function(&naive_complex, naive_complex_descr);
-  add_complex_function(&chunks_complex, chunks_complex_descr);
-  add_complex_function(&double_complex, double_complex_descr);
+  //add_complex_function(&complex, complex_descr);
+  //add_complex_function(&naive_complex, naive_complex_descr);
+  //add_complex_function(&chunks_complex, chunks_complex_descr);
+  //add_complex_function(&double_complex, double_complex_descr);
 }
 
 
@@ -309,7 +309,7 @@ void motion(int dim, pixel *src, pixel *dst)
  *     registered test function.  
  *********************************************************************/
 
-void register_motion_functions() {/*
+void register_motion_functions() {
   add_motion_function(&motion, motion_descr);
-  add_motion_function(&naive_motion, naive_motion_descr);*/
+  add_motion_function(&naive_motion, naive_motion_descr);
 }
