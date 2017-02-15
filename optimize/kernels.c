@@ -72,31 +72,49 @@ void naive_complex(int dim, pixel *src, pixel *dest)
 char complex_descr[] = "complex: Current working version";
 void complex(int dim, pixel *src, pixel *dest)
 {
-  // TODO: This
-  int i, j, i1, j1, color, tmp;
-  pixel_int *pixel;
+  int row, col, h, w, ridx, avg;
+  int chunk_length = (dim >> 5);
+  pixel tmp;
 
-  for(i = 0; i < dim; i++){
-    i1 = dim - i - 1;
-    for(j = 0; j < dim; j += 2)
-    {
-      j1 = dim - j - 1;
-      convert_pixel(&src[RIDX(i, j, dim)], pixel);
-      tmp = pixel->red + pixel->green + pixel->blue;
-      color = tmp / 3;
+  for(h = 0; h < chunk_length; h++){
+    for(w = 0; w < chunk_length; w++){
+      for(row = h * 32; row < h * 32 + 32; row++){
+	for(col = w * 32; col < w * 32 + 32; col++){
+	  tmp = src[RIDX(row, col, dim)];
+	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
+	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
+	  dest[ridx].red = avg;
+	  dest[ridx].green = avg;
+	  dest[ridx].blue = avg;
 
-      dest[RIDX(j1, i1, dim)].red = color;
-      dest[RIDX(j1, i1, dim)].green = color;
-      dest[RIDX(j1, i1, dim)].blue = color;
+	  col++;
 
-      j1 = dim - (j + 1) - 1;
-      convert_pixel(&src[RIDX(i, j + 1, dim)], pixel);
-      tmp = pixel->red + pixel->green + pixel->blue;
-      color = tmp / 3;
+	  tmp = src[RIDX(row, col, dim)];
+	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
+	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
+	  dest[ridx].red = avg;
+	  dest[ridx].green = avg;
+	  dest[ridx].blue = avg;
 
-      dest[RIDX(j1, i1, dim)].red = color;
-      dest[RIDX(j1, i1, dim)].green = color;
-      dest[RIDX(j1, i1, dim)].blue = color;
+	  col++;
+
+	  tmp = src[RIDX(row, col, dim)];
+	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
+	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
+	  dest[ridx].red = avg;
+	  dest[ridx].green = avg;
+	  dest[ridx].blue = avg;
+
+	  col++;
+
+	  tmp = src[RIDX(row, col, dim)];
+	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
+	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
+	  dest[ridx].red = avg;
+	  dest[ridx].green = avg;
+	  dest[ridx].blue = avg;
+	}
+      }
     }
   }
 }
@@ -111,10 +129,11 @@ void double_complex(int dim, pixel *src, pixel *dest){
     {
       ridx1 = RIDX(dim - j - 1, dim - i - 1, dim);
       stmp1 = src[RIDX(i, j, dim)];
-      avg1 = ((int)stmp1.red + (int)stmp1.green + (int)stmp1.blue) / 3;
 
       ridx2 = RIDX(dim - (j + 1) - 1, dim - i - 1, dim);
       stmp2 = src[RIDX(i, j + 1, dim)];
+
+      avg1 = ((int)stmp1.red + (int)stmp1.green + (int)stmp1.blue) / 3;
 
       dest[ridx1].red = avg1;
       dest[ridx1].green = avg1;
