@@ -101,6 +101,32 @@ void complex(int dim, pixel *src, pixel *dest)
   }
 }
 
+char double_complex_descr[] = "double_complex: Let's try doing two at once";
+void double_complex(int dim, pixel *src, pixel *dest){
+  int i, j, ridx1, ridx2, avg1, avg2;
+  pixel stmp1, stmp2;
+
+  for(i = 0; i < dim; i++)
+    for(j = 0; j < dim - 1; j += 2)
+    {
+      ridx1 = RIDX(dim - j - 1, dim - i - 1, dim);
+      stmp1 = src[RIDX(i, j, dim)];
+      avg1 = ((int)stmp1.red + (int)stmp1.green + (int)stmp1.blue) / 3;
+
+      ridx2 = RIDX(dim - (j + 1) - 1, dim - i - 1, dim);
+      stmp2 = src[RIDX(i, j + 1, dim)];
+
+      dest[ridx1].red = avg1;
+      dest[ridx1].green = avg1;
+      dest[ridx1].blue = avg1;
+
+      avg2 = ((int)stmp2.red + (int)stmp2.green + (int)stmp2.blue) / 3;
+      dest[ridx2].red = avg2;
+      dest[ridx2].green = avg2;
+      dest[ridx2].blue = avg2;
+    }
+}
+
 char chunks_complex_descr[] = "chunks_complex: Trying out 32x32 chunks";
 void chunks_complex(int dim, pixel *src, pixel *dest)
 {
@@ -163,6 +189,7 @@ void register_complex_functions() {
   add_complex_function(&complex, complex_descr);
   add_complex_function(&naive_complex, naive_complex_descr);
   add_complex_function(&chunks_complex, chunks_complex_descr);
+  add_complex_function(&double_complex, double_complex_descr);
 }
 
 
