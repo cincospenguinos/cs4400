@@ -124,20 +124,22 @@ char chunks_complex_descr[] = "chunks_complex: Trying out 32x32 chunks";
 void chunks_complex(int dim, pixel *src, pixel *dest)
 {
   int row, col, h, w, ridx, avg;
-  int chunk_length = (dim >> 5);
+  int chunk_length = (dim >> 3);
+  int other_tmp = 8;
   pixel tmp;
 
-  for(h = 0; h < chunk_length; h++){
-    for(w = 0; w < chunk_length; w++){
-      for(row = h * 32; row < h * 32 + 32; row++){
-	for(col = w * 32; col < w * 32 + 32; col++){
+  // TODO: Swap these: read bottom up; write left to right
+  for(h = 0; h < dim; h += other_tmp){
+    for(w = 0; w < dim; w += other_tmp){
+      for(row = h; row < h + other_tmp; row++){
+	for(col = w; col < w + other_tmp; col++){
 	  tmp = src[RIDX(row, col, dim)];
 	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
 	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
 	  dest[ridx].red = avg;
 	  dest[ridx].green = avg;
 	  dest[ridx].blue = avg;
-
+	  /*
 	  col++;
 
 	  tmp = src[RIDX(row, col, dim)];
@@ -163,7 +165,7 @@ void chunks_complex(int dim, pixel *src, pixel *dest)
 	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
 	  dest[ridx].red = avg;
 	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
+	  dest[ridx].blue = avg;*/
 	}
       }
     }
@@ -179,8 +181,8 @@ void chunks_complex(int dim, pixel *src, pixel *dest)
  *********************************************************************/
 
 void register_complex_functions() {
-  //add_complex_function(&complex, complex_descr);
-  //add_complex_function(&naive_complex, naive_complex_descr);
+  add_complex_function(&complex, complex_descr);
+  add_complex_function(&naive_complex, naive_complex_descr);
   //add_complex_function(&chunks_complex, chunks_complex_descr);
   //add_complex_function(&double_complex, double_complex_descr);
 }
@@ -236,21 +238,62 @@ static pixel other_combo(int dim, int row, int col, pixel *src)
   int red, green, blue;
   red = green = blue = 0;
 
-  if(dim - row == 2){
-    rlim = 2;
-  } else if(dim - row == 1) {
-    rlim = 1;
-  } else {
-    rlim = 3;
-  }
 
-  if(dim - col == 2){
+
+  if(dim - row == 2)
+    rlim = 2;
+  else if(dim - row == 1)
+    rlim = 1;
+  else
+    rlim = 3;
+
+  if(dim - col == 2)
     clim = 2;
-  } else if(dim - col == 1){
+  else if(dim - col == 1)
     clim = 1;
-  } else {
+  else
     clim = 3;
+
+  for(r = 0; r < rlim; r++){
+    for(c = 0; c < clim; c++){
+      current_pixel = src[RIDX(row + r, col + c, dim)];
+      red += (int) current_pixel.red;
+      green += (int) current_pixel.green;
+      blue += (int) current_pixel.blue;
+    }
   }
+  
+  int num_neighbors = rlim * clim;
+
+  current_pixel.red = (unsigned short) (red / num_neighbors);
+  current_pixel.green = (unsigned short) (green / num_neighbors);
+  current_pixel.blue = (unsigned short) (blue / num_neighbors);
+  
+  return current_pixel;
+}
+
+static pixel yet_another_combo(int dim, int row, int col, pixel *src){
+  int r, c, rlim, clim;
+  pixel current_pixel;
+
+  int red, green, blue;
+  red = green = blue = 0;
+
+
+
+  if(dim - row == 2)
+    rlim = 2;
+  else if(dim - row == 1)
+    rlim = 1;
+  else
+    rlim = 3;
+
+  if(dim - col == 2)
+    clim = 2;
+  else if(dim - col == 1)
+    clim = 1;
+  else
+    clim = 3;
 
   for(r = 0; r < rlim; r++){
     for(c = 0; c < clim; c++){
@@ -297,6 +340,7 @@ void motion(int dim, pixel *src, pixel *dst)
 {
   int i, j, W, H;
 
+  // TODO: Manage all the normal cases first; then manage all of the other edge cases
   for(H = 0; H < (dim >> 5); H++){
     for(W = 0; W < (dim >> 5); W++){
       for (i = 32 * H; i < H * 32 + 32; i++)
