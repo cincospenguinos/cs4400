@@ -230,28 +230,42 @@ static pixel weighted_combo(int dim, int i, int j, pixel *src)
 
 static pixel other_combo(int dim, int row, int col, pixel *src) 
 {
-  int i, j;
+  int r, c, rlim, clim;
+  pixel current_pixel;
+
   int red, green, blue;
   red = green = blue = 0;
 
-  int rows = MIN((dim - row), 3);
-  int cols = MIN((dim - col), 3);
-  int neighbors = rows * cols;
+  if(dim - row == 2){
+    rlim = 2;
+  } else if(dim - row == 1) {
+    rlim = 1;
+  } else {
+    rlim = 3;
+  }
 
-  pixel current_pixel;
+  if(dim - col == 2){
+    clim = 2;
+  } else if(dim - col == 1){
+    clim = 1;
+  } else {
+    clim = 3;
+  }
 
-  for(i = row; i < row + rows; i++){
-    for(j = col; j < col + cols; col++){
-      current_pixel = src[RIDX(i, j, dim)];
+  for(r = 0; r < rlim; r++){
+    for(c = 0; c < clim; c++){
+      current_pixel = src[RIDX(row + r, col + c, dim)];
       red += (int) current_pixel.red;
       green += (int) current_pixel.green;
       blue += (int) current_pixel.blue;
     }
   }
   
-  current_pixel.red = (unsigned short) (red / neighbors);
-  current_pixel.green = (unsigned short) (green / neighbors);
-  current_pixel.blue = (unsigned short) (blue / neighbors);
+  int num_neighbors = rlim * clim;
+
+  current_pixel.red = (unsigned short) (red / num_neighbors);
+  current_pixel.green = (unsigned short) (green / num_neighbors);
+  current_pixel.blue = (unsigned short) (blue / num_neighbors);
   
   return current_pixel;
 }
