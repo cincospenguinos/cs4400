@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "defs.h"
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 /* 
  * Please fill in the following student struct 
  */
@@ -80,33 +81,6 @@ void complex(int dim, pixel *src, pixel *dest)
     for(w = 0; w < chunk_length; w++){
       for(row = h * 32; row < h * 32 + 32; row++){
 	for(col = w * 32; col < w * 32 + 32; col++){
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-
-	  col++;
-
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-
-	  col++;
-
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-
-	  col++;
-
 	  tmp = src[RIDX(row, col, dim)];
 	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
 	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
@@ -254,6 +228,34 @@ static pixel weighted_combo(int dim, int i, int j, pixel *src)
   return current_pixel;
 }
 
+static pixel other_combo(int dim, int row, int col, pixel *src) 
+{
+  int i, j;
+  int red, green, blue;
+  red = green = blue = 0;
+
+  int rows = MIN((dim - row), 3);
+  int cols = MIN((dim - col), 3);
+  int neighbors = rows * cols;
+
+  pixel current_pixel;
+
+  for(i = row; i < row + rows; i++){
+    for(j = col; j < col + cols; col++){
+      current_pixel = src[RIDX(i, j, dim)];
+      red += (int) current_pixel.red;
+      green += (int) current_pixel.green;
+      blue += (int) current_pixel.blue;
+    }
+  }
+  
+  current_pixel.red = (unsigned short) (red / neighbors);
+  current_pixel.green = (unsigned short) (green / neighbors);
+  current_pixel.blue = (unsigned short) (blue / neighbors);
+  
+  return current_pixel;
+}
+
 /******************************************************
  * Your different versions of the motion kernel go here
  ******************************************************/
@@ -285,9 +287,7 @@ void motion(int dim, pixel *src, pixel *dst)
     for(W = 0; W < (dim >> 5); W++){
       for (i = 32 * H; i < H * 32 + 32; i++)
 	for (j = 32 * W; j < W * 32 + 32; j++){
-	  
-	  int dst_ridx = RIDX(i, j, dim);
-	  dst[dst_ridx] = weighted_combo(dim, i, j, src);
+	  dst[RIDX(i, j, dim)] = other_combo(dim, i, j, src);
 	}
     }
   }
