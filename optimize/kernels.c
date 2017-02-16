@@ -254,8 +254,6 @@ static pixel weighted_combo(int dim, int i, int j, pixel *src)
   return current_pixel;
 }
 
-
-
 /******************************************************
  * Your different versions of the motion kernel go here
  ******************************************************/
@@ -281,22 +279,16 @@ void naive_motion(int dim, pixel *src, pixel *dst)
 char motion_descr[] = "motion: Current working version";
 void motion(int dim, pixel *src, pixel *dst) 
 {
-  // TODO: Figure this out
-  //int sets_of_32 = dim >> 5;
-  //printf("%d\t%d\n", dim, sets_of_32);
+  int i, j, W, H;
 
-  int row, col, ridx;
-  for (row = 0; row < dim; row++){
-    ridx = row * dim;
-    for(col = 0; col < dim; col += 8){
-      dst[ridx + col] = weighted_combo(dim, row, col, src);
-      dst[ridx + col + 1] = weighted_combo(dim, row, col + 1, src);
-      dst[ridx + col + 2] = weighted_combo(dim, row, col + 2, src);
-      dst[ridx + col + 3] = weighted_combo(dim, row, col + 3, src);
-      dst[ridx + col + 4] = weighted_combo(dim, row, col + 4, src);
-      dst[ridx + col + 5] = weighted_combo(dim, row, col + 5, src);
-      dst[ridx + col + 6] = weighted_combo(dim, row, col + 6, src);
-      dst[ridx + col + 7] = weighted_combo(dim, row, col + 7, src);
+  for(H = 0; H < (dim >> 5); H++){
+    for(W = 0; W < (dim >> 5); W++){
+      for (i = 32 * H; i < H * 32 + 32; i++)
+	for (j = 32 * W; j < W * 32 + 32; j++){
+	  
+	  int dst_ridx = RIDX(i, j, dim);
+	  dst[dst_ridx] = weighted_combo(dim, i, j, src);
+	}
     }
   }
 }
