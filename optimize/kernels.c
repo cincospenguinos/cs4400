@@ -331,16 +331,21 @@ void motion(int dim, pixel *src, pixel *dst)
     }
   }
 
-  // Cases against the right side of the image
-  j = dim - 2;
-  for(i = 0; i < dim - 2; i++){
-    dst[RIDX(i, j, dim)] = weighted_combo_right_edge_6(dim, i, j, src);
+  // Now the random other cases
+  for(i = 0; i < dim; i++){
+    for(j = dim - 2; j < dim; j++){
+      dst[RIDX(i, j, dim)] = other_combo(dim, i, j, src);
+    }
   }
 
-  i = dim - 2;
-  for(j = 0; j < dim - 2; j++){
-    dst[RIDX(i, j, dim)] = weighted_combo_right_edge_3(dim, i, j, src);
+  for(i = dim - 2; i < dim; i++){
+    for(j = 0; j < dim; j++){
+      dst[RIDX(i, j, dim)] = other_combo(dim, i, j, src);
+    }
   }
+
+  // Last case
+  dst[RIDX(dim - 1, dim - 1, dim)] = other_combo(dim, dim - 1, dim - 1, src);
 }
 
 /********************************************************************* 
