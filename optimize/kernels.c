@@ -149,6 +149,73 @@ static pixel weighted_combo(int dim, int i, int j, pixel *src)
   return current_pixel;
 }
 
+static pixel weighted_combo_general(int dim, int row, int col, pixel *src){
+  int i, j;
+  pixel current_pixel;
+  int red, green, blue;
+
+  red = green = blue = 0;
+
+  for(i = 0; i < 3; i++){
+    for(j = 0; j < 3; j++){
+      current_pixel = src[RIDX(row + i, col + j, dim)];
+      red += (int) current_pixel.red;
+      green += (int) current_pixel.green;
+      blue += (int) current_pixel.blue;
+    }
+  }
+
+  current_pixel.red = (unsigned short) (red / 9);
+  current_pixel.green = (unsigned short) (green / 9);
+  current_pixel.blue = (unsigned short) (blue / 9);
+  
+  return current_pixel;
+}
+
+static pixel weighted_combo_right_edge_6(int dim, int row, int col, pixel *src){
+  int i, j;
+  pixel current_pixel;
+  int red, green, blue;
+
+  red = green = blue = 0;
+
+  for(i = 0; i < 3; i++){
+    for(j = 0; j < 2; j++){
+      current_pixel = src[RIDX(row + i, col + j, dim)];
+      red += (int) current_pixel.red;
+      green += (int) current_pixel.green;
+      blue += (int) current_pixel.blue;
+    }
+  }
+
+  current_pixel.red = (unsigned short) (red / 6);
+  current_pixel.green = (unsigned short) (green / 6);
+  current_pixel.blue = (unsigned short) (blue / 6);
+  
+  return current_pixel;
+}
+
+static pixel weighted_combo_right_edge_3(int dim, int row, int col, pixel *src){
+  int i;
+  pixel current_pixel;
+  int red, green, blue;
+
+  red = green = blue = 0;
+
+  for(i = 0; i < 3; i++){
+    current_pixel = src[RIDX(row + i, col, dim)];
+    red += (int) current_pixel.red;
+    green += (int) current_pixel.green;
+    blue += (int) current_pixel.blue;
+  }
+
+  current_pixel.red = (unsigned short) (red / 3);
+  current_pixel.green = (unsigned short) (green / 3);
+  current_pixel.blue = (unsigned short) (blue / 3);
+  
+  return current_pixel;
+}
+
 static pixel other_combo(int dim, int row, int col, pixel *src) 
 {
   int r, c, rlim, clim;
@@ -156,8 +223,6 @@ static pixel other_combo(int dim, int row, int col, pixel *src)
 
   int red, green, blue;
   red = green = blue = 0;
-
-
 
   if(dim - row == 2)
     rlim = 2;
@@ -257,16 +322,24 @@ void naive_motion(int dim, pixel *src, pixel *dst)
 char motion_descr[] = "motion: Current working version";
 void motion(int dim, pixel *src, pixel *dst) 
 {
-  int i, j, W, H;
+  int i, j;
 
-  // TODO: Manage all the normal cases first; then manage all of the other edge cases
-  for(H = 0; H < (dim >> 5); H++){
-    for(W = 0; W < (dim >> 5); W++){
-      for (i = 32 * H; i < H * 32 + 32; i++)
-	for (j = 32 * W; j < W * 32 + 32; j++){
-	  dst[RIDX(i, j, dim)] = other_combo(dim, i, j, src);
-	}
+  // The main cases first
+  for(i = 0; i < dim - 2; i++){
+    for(j = 0; j < dim - 2; j++){
+      dst[RIDX(i, j, dim)] = weighted_combo_general(dim, i, j, src);
     }
+  }
+
+  // Cases against the right side of the image
+  j = dim - 2;
+  for(i = 0; i < dim - 2; i++){
+    dst[RIDX(i, j, dim)] = weighted_combo_right_edge_6(dim, i, j, src);
+  }
+
+  i = dim - 2;
+  for(j = 0; j < dim - 2; j++){
+    dst[RIDX(i, j, dim)] = weighted_combo_right_edge_3(dim, i, j, src);
   }
 }
 
