@@ -19,9 +19,6 @@
 static void check_for_shared_object(Elf64_Ehdr *ehdr);
 static void fail(char *reason, int err_code);
 
-/* Definition of a function */
-
-
 /* My functions */
 static void print_functions();
 static void get_all_functions(Elf64_Ehdr*);
