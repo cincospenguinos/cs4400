@@ -1,0 +1,13 @@
+CS4400 Spring 2017 Lab7 Worksheet:
+
+Name: Andre LaFleur
+
+1. What are the first three section offsets?
+
+0
+456
+496
+
+2. What is the offset of the shstrtab section?
+
+4181
