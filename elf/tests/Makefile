@@ -22,6 +22,11 @@ TEST_INPUTS =   \
   f_calls_g_uses_a.so \
   many_uses.so
 
+demo: inspect
+	gcc -O2 -fPIC -c demo.c
+	gcc -shared -o demo.so demo.o
+	./inspect demo.so
+
 test: inspect $(TEST_INPUTS)
 	$(MAKE) generate-output
 	$(MAKE) check-output
