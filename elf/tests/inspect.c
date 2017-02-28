@@ -30,7 +30,7 @@ typedef struct function {
 static void print_functions();
 static void get_all_functions(Elf64_Ehdr*);
 static void add_function(function f);
-
+static void get_dyn_vars(Elf64_Ehdr*);
 // Variables I care about
 static function *head;
 static function *current_function;
@@ -85,18 +85,17 @@ int main(int argc, char **argv) {
   check_for_shared_object(ehdr);
 
   /* Add a call to your work here */
+  get_dyn_vars(ehdr);
   get_all_functions(ehdr);
   print_functions();
 
   return 0;
 }
 
-static void print_functions(){
-  // TODO
-}
-
-
-static void get_all_functions(Elf64_Ehdr *ehdr){
+/**
+ * Grabs the addresses of .dynstr and .dynsym
+ */
+static void get_dyn_vars(Elf64_Ehdr *ehdr){
   Elf64_Shdr* section_headers = (void*)ehdr + ehdr->e_shoff; // All the section headers
   char *section_names = (void*)ehdr + section_headers[ehdr->e_shstrndx].sh_offset; // section names
   int i;
@@ -111,8 +110,15 @@ static void get_all_functions(Elf64_Ehdr *ehdr){
       dynstr = &section_headers[i];
     }
   }
+}
 
-  
+static void print_functions(){
+  // TODO
+}
+
+
+static void get_all_functions(Elf64_Ehdr *ehdr){
+  // TODO
 }
 
 /**
