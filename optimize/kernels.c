@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include "defs.h"
 
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 /* 
  * Please fill in the following student struct 
  */
@@ -73,119 +74,15 @@ char complex_descr[] = "complex: Current working version";
 void complex(int dim, pixel *src, pixel *dest)
 {
   int row, col, h, w, ridx, avg;
-  int chunk_length = (dim >> 5);
+  int other_tmp = 32;
   pixel tmp;
 
-  for(h = 0; h < chunk_length; h++){
-    for(w = 0; w < chunk_length; w++){
-      for(row = h * 32; row < h * 32 + 32; row++){
-	for(col = w * 32; col < w * 32 + 32; col++){
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-
-	  col++;
-
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-
-	  col++;
-
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-
-	  col++;
-
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-	}
-      }
-    }
-  }
-}
-
-char double_complex_descr[] = "double_complex: Let's try doing two at once";
-void double_complex(int dim, pixel *src, pixel *dest){
-  int i, j, ridx1, ridx2, avg1, avg2;
-  pixel stmp1, stmp2;
-
-  for(i = 0; i < dim; i++)
-    for(j = 0; j < dim - 1; j += 2)
-    {
-      ridx1 = RIDX(dim - j - 1, dim - i - 1, dim);
-      stmp1 = src[RIDX(i, j, dim)];
-
-      ridx2 = RIDX(dim - (j + 1) - 1, dim - i - 1, dim);
-      stmp2 = src[RIDX(i, j + 1, dim)];
-
-      avg1 = ((int)stmp1.red + (int)stmp1.green + (int)stmp1.blue) / 3;
-
-      dest[ridx1].red = avg1;
-      dest[ridx1].green = avg1;
-      dest[ridx1].blue = avg1;
-
-      avg2 = ((int)stmp2.red + (int)stmp2.green + (int)stmp2.blue) / 3;
-      dest[ridx2].red = avg2;
-      dest[ridx2].green = avg2;
-      dest[ridx2].blue = avg2;
-    }
-}
-
-char chunks_complex_descr[] = "chunks_complex: Trying out 32x32 chunks";
-void chunks_complex(int dim, pixel *src, pixel *dest)
-{
-  int row, col, h, w, ridx, avg;
-  int chunk_length = (dim >> 5);
-  pixel tmp;
-
-  for(h = 0; h < chunk_length; h++){
-    for(w = 0; w < chunk_length; w++){
-      for(row = h * 32; row < h * 32 + 32; row++){
-	for(col = w * 32; col < w * 32 + 32; col++){
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-
-	  col++;
-
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-
-	  col++;
-
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
-	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
-	  dest[ridx].red = avg;
-	  dest[ridx].green = avg;
-	  dest[ridx].blue = avg;
-
-	  col++;
-
-	  tmp = src[RIDX(row, col, dim)];
-	  ridx = RIDX(dim - col - 1, dim - row - 1, dim);
+  for(h = 0; h < dim; h += other_tmp){
+    for(w = 0; w < dim; w += other_tmp){
+      for(row = h; row < h + other_tmp; row++){
+	for(col = w; col < w + other_tmp; col++){
+	  tmp = src[RIDX(col, row, dim)];
+	  ridx = RIDX(dim - row - 1, dim - col - 1, dim);
 	  avg = ((int)tmp.red + (int)tmp.green + (int)tmp.blue) / 3;
 	  dest[ridx].red = avg;
 	  dest[ridx].green = avg;
@@ -207,8 +104,6 @@ void chunks_complex(int dim, pixel *src, pixel *dest)
 void register_complex_functions() {
   add_complex_function(&complex, complex_descr);
   add_complex_function(&naive_complex, naive_complex_descr);
-  add_complex_function(&chunks_complex, chunks_complex_descr);
-  add_complex_function(&double_complex, double_complex_descr);
 }
 
 
@@ -254,7 +149,156 @@ static pixel weighted_combo(int dim, int i, int j, pixel *src)
   return current_pixel;
 }
 
+static pixel weighted_combo_general(int dim, int row, int col, pixel *src){
+  int i, j;
+  pixel current_pixel;
+  int red, green, blue;
 
+  red = green = blue = 0;
+
+  for(i = 0; i < 3; i++){
+    for(j = 0; j < 3; j++){
+      current_pixel = src[RIDX(row + i, col + j, dim)];
+      red += (int) current_pixel.red;
+      green += (int) current_pixel.green;
+      blue += (int) current_pixel.blue;
+    }
+  }
+
+  current_pixel.red = (unsigned short) (red / 9);
+  current_pixel.green = (unsigned short) (green / 9);
+  current_pixel.blue = (unsigned short) (blue / 9);
+  
+  return current_pixel;
+}
+
+static pixel weighted_combo_right_edge_6(int dim, int row, int col, pixel *src){
+  int i, j;
+  pixel current_pixel;
+  int red, green, blue;
+
+  red = green = blue = 0;
+
+  for(i = 0; i < 3; i++){
+    for(j = 0; j < 2; j++){
+      current_pixel = src[RIDX(row + i, col + j, dim)];
+      red += (int) current_pixel.red;
+      green += (int) current_pixel.green;
+      blue += (int) current_pixel.blue;
+    }
+  }
+
+  current_pixel.red = (unsigned short) (red / 6);
+  current_pixel.green = (unsigned short) (green / 6);
+  current_pixel.blue = (unsigned short) (blue / 6);
+  
+  return current_pixel;
+}
+
+static pixel weighted_combo_right_edge_3(int dim, int row, int col, pixel *src){
+  int i;
+  pixel current_pixel;
+  int red, green, blue;
+
+  red = green = blue = 0;
+
+  for(i = 0; i < 3; i++){
+    current_pixel = src[RIDX(row + i, col, dim)];
+    red += (int) current_pixel.red;
+    green += (int) current_pixel.green;
+    blue += (int) current_pixel.blue;
+  }
+
+  current_pixel.red = (unsigned short) (red / 3);
+  current_pixel.green = (unsigned short) (green / 3);
+  current_pixel.blue = (unsigned short) (blue / 3);
+  
+  return current_pixel;
+}
+
+static pixel weighted_combo_bottom_edge_6(int dim, int row, int col, pixel *src){
+  int i, j;
+  pixel current_pixel;
+  int red, green, blue;
+
+  red = green = blue = 0;
+
+  for(i = 0; i < 2; i++){
+    for(j = 0; j < 3; j++){
+      current_pixel = src[RIDX(row + i, col + j, dim)];
+      red += (int) current_pixel.red;
+      green += (int) current_pixel.green;
+      blue += (int) current_pixel.blue;
+    }
+  }
+
+  current_pixel.red = (unsigned short) (red / 6);
+  current_pixel.green = (unsigned short) (green / 6);
+  current_pixel.blue = (unsigned short) (blue / 6);
+  
+  return current_pixel;
+}
+
+static pixel weighted_combo_bottom_edge_3(int dim, int row, int col, pixel *src){
+  int i;
+  pixel current_pixel;
+  int red, green, blue;
+
+  red = green = blue = 0;
+
+  for(i = 0; i < 3; i++){
+    current_pixel = src[RIDX(row, col + i, dim)];
+    red += (int) current_pixel.red;
+    green += (int) current_pixel.green;
+    blue += (int) current_pixel.blue;
+  }
+
+  current_pixel.red = (unsigned short) (red / 3);
+  current_pixel.green = (unsigned short) (green / 3);
+  current_pixel.blue = (unsigned short) (blue / 3);
+  
+  return current_pixel;
+}
+
+static pixel other_combo(int dim, int row, int col, pixel *src) 
+{
+  int r, c, rlim, clim;
+  pixel current_pixel;
+
+  int red, green, blue;
+  red = green = blue = 0;
+
+  if(dim - row == 2)
+    rlim = 2;
+  else if(dim - row == 1)
+    rlim = 1;
+  else
+    rlim = 3;
+
+  if(dim - col == 2)
+    clim = 2;
+  else if(dim - col == 1)
+    clim = 1;
+  else
+    clim = 3;
+
+  for(r = 0; r < rlim; r++){
+    for(c = 0; c < clim; c++){
+      current_pixel = src[RIDX(row + r, col + c, dim)];
+      red += (int) current_pixel.red;
+      green += (int) current_pixel.green;
+      blue += (int) current_pixel.blue;
+    }
+  }
+  
+  int num_neighbors = rlim * clim;
+
+  current_pixel.red = (unsigned short) (red / num_neighbors);
+  current_pixel.green = (unsigned short) (green / num_neighbors);
+  current_pixel.blue = (unsigned short) (blue / num_neighbors);
+  
+  return current_pixel;
+}
 
 /******************************************************
  * Your different versions of the motion kernel go here
@@ -281,22 +325,32 @@ void naive_motion(int dim, pixel *src, pixel *dst)
 char motion_descr[] = "motion: Current working version";
 void motion(int dim, pixel *src, pixel *dst) 
 {
-  // TODO: Figure this out
-  //int sets_of_32 = dim >> 5;
-  //printf("%d\t%d\n", dim, sets_of_32);
+  int i, j;
 
-  int row, col, ridx;
-  for (row = 0; row < dim; row++){
-    ridx = row * dim;
-    for(col = 0; col < dim; col += 8){
-      dst[ridx + col] = weighted_combo(dim, row, col, src);
-      dst[ridx + col + 1] = weighted_combo(dim, row, col + 1, src);
-      dst[ridx + col + 2] = weighted_combo(dim, row, col + 2, src);
-      dst[ridx + col + 3] = weighted_combo(dim, row, col + 3, src);
-      dst[ridx + col + 4] = weighted_combo(dim, row, col + 4, src);
-      dst[ridx + col + 5] = weighted_combo(dim, row, col + 5, src);
-      dst[ridx + col + 6] = weighted_combo(dim, row, col + 6, src);
-      dst[ridx + col + 7] = weighted_combo(dim, row, col + 7, src);
+  // The main cases first
+  for(i = 0; i < dim - 2; i++){
+    for(j = 0; j < dim - 2; j++){
+      dst[RIDX(i, j, dim)] = weighted_combo_general(dim, i, j, src);
+    }
+  }
+
+  // Now the random other cases
+  for(i = 0; i < dim; i++)
+    dst[RIDX(i, dim - 2, dim)] = weighted_combo_right_edge_6(dim, i, dim - 2, src);
+
+  for(i = 0; i < dim; i++)
+    dst[RIDX(i, dim - 1, dim)] = weighted_combo_right_edge_3(dim, i, dim - 1, src);
+
+  for(j = 0; j < dim; j++)
+    dst[RIDX(dim - 2, j, dim)] = weighted_combo_bottom_edge_6(dim, dim - 2, j, src);
+
+  for(j = 0; j < dim; j++)
+    dst[RIDX(dim - 1, j, dim)] = weighted_combo_bottom_edge_3(dim, dim - 1, j, src);
+
+  // Last cases
+  for(i = dim - 2; i < dim; i++){
+    for(j = dim - 2; j < dim; j++){
+      dst[RIDX(i, j, dim)] = other_combo(dim, i, j, src);
     }
   }
 }
@@ -309,7 +363,7 @@ void motion(int dim, pixel *src, pixel *dst)
  *     registered test function.  
  *********************************************************************/
 
-void register_motion_functions() {/*
+void register_motion_functions() {
   add_motion_function(&motion, motion_descr);
-  add_motion_function(&naive_motion, naive_motion_descr);*/
+  add_motion_function(&naive_motion, naive_motion_descr);
 }

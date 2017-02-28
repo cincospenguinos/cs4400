@@ -12,6 +12,7 @@ driver: $(OBJS) config.h defs.h fcyc.h
 clean: 
 	-rm -f $(OBJS) driver core *~ *.o
 	-rm -f *.s
+	-rm -f *.image *.png
 
 assem:
 	$(CC) -Wall -Og -S kernels.c
