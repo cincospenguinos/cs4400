@@ -34,8 +34,8 @@ static void add_function(function f);
 // Variables I care about
 static function *head;
 static function *current_function;
-static void *dynsym;
-static void *dynstr;
+static Elf64_Shdr *dynsym;
+static Elf64_Shdr *dynstr;
 
 /**
  * GAMEPLAN
@@ -97,21 +97,22 @@ static void print_functions(){
 
 
 static void get_all_functions(Elf64_Ehdr *ehdr){
-  Elf64_Shdr* headers = (void*)ehdr + ehdr->e_shoff;
-  unsigned long strtab_offset = headers[ehdr->e_shstrndx].sh_offset;
-  char *strings = (void*)ehdr + strtab_offset;
+  Elf64_Shdr* section_headers = (void*)ehdr + ehdr->e_shoff; // All the section headers
+  char *section_names = (void*)ehdr + section_headers[ehdr->e_shstrndx].sh_offset; // section names
   int i;
   for(i = 0; i < ehdr->e_shnum; i++){
-    if(strcmp(strings + headers[i].sh_name, ".dynsym") == 0){
-      dynsym = (void*)(strings + headers[i].sh_name);
-    } else if(strcmp(strings + headers[i].sh_name, ".dynstr") == 0){
-      dynstr = (void*)strings + headers[i].sh_name;
+    char *name = section_names + section_headers[i].sh_name;
+
+    if(strcmp(name, ".dynsym") == 0){
+      //printf("Found .dynsym.\n");
+      dynsym = &section_headers[i];
+    } else if(strcmp(name, ".dynstr") == 0){
+      //printf("Found .dynstr\n");
+      dynstr = &section_headers[i];
     }
   }
 
-  Elf64_Sym *symbols = (void*)dynsym;
-
-  //printf("%s\n", dynstr);
+  
 }
 
 /**
