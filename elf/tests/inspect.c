@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -30,9 +31,11 @@ static void print_functions();
 static void get_all_functions(Elf64_Ehdr*);
 static void add_function(function f);
 
-// The current function
+// Variables I care about
 static function *head;
 static function *current_function;
+static void *dynsym;
+static void *dynstr;
 
 /**
  * GAMEPLAN
@@ -99,8 +102,16 @@ static void get_all_functions(Elf64_Ehdr *ehdr){
   char *strings = (void*)ehdr + strtab_offset;
   int i;
   for(i = 0; i < ehdr->e_shnum; i++){
-    printf("%s\n", strings + headers[i].sh_name);
+    if(strcmp(strings + headers[i].sh_name, ".dynsym") == 0){
+      dynsym = (void*)(strings + headers[i].sh_name);
+    } else if(strcmp(strings + headers[i].sh_name, ".dynstr") == 0){
+      dynstr = (void*)strings + headers[i].sh_name;
+    }
   }
+
+  Elf64_Sym *symbols = (void*)dynsym;
+
+  //printf("%s\n", dynstr);
 }
 
 /**
