@@ -24,27 +24,19 @@ static void print_functions();
 static void get_all_functions(Elf64_Ehdr*);
 static void get_dyn_vars(Elf64_Ehdr*);
 
+/* Structure to hold data on function calls */
+typedef struct function {
+  char *name;
+  struct function *next;
+}function;
+
+static function create_func(char*);
+
 // Variables I care about
 static Elf64_Shdr *dynsym;
 static Elf64_Shdr *dynstr;
-
-/**
- * GAMEPLAN
- *
- * So I'm pretty far over my head on this one, but I'm going to give it a shot.
- *
- * We can move through the file as many times as we want, so why don't we make
- * a shitty datastructure and populate it as we go? Just grab the names of all
- * the functions and then worry about throwing in the variables later.
- *
- * Here's what I'm thinking we could do:
- * 
- * - Find the .dynsym section. That will help us get a hold of the .dynstr
- *   section, which will hold the function names
- * - Loop through the functions until we get one that is not empty
- * - Dump in the structure
- * - Print out all the functions
- */
+static function funcs[FUNC_ARRAY_SIZE];
+static unsigned int func_index = 0;
 
 int main(int argc, char **argv) {
   int fd;
@@ -104,9 +96,11 @@ static void get_dyn_vars(Elf64_Ehdr *ehdr){
 }
 
 static void print_functions(){
-  // TODO
+  int i;
+  for(i = 0; i < func_index; i++){
+    printf("%s\n", funcs[i].name);
+  }
 }
-
 
 static void get_all_functions(Elf64_Ehdr *ehdr){
   Elf64_Sym *syms = AT_SEC(ehdr, dynsym);
@@ -115,9 +109,17 @@ static void get_all_functions(Elf64_Ehdr *ehdr){
 
   for (i = 0; i < count; i++) {
     Elf64_Sym sym = syms[i];
-    if(ELF64_ST_TYPE(sym.st_info) == STT_FUNC && sym.st_size > 0)
-      printf("%s\n", strs + sym.st_name);
+    if(ELF64_ST_TYPE(sym.st_info) == STT_FUNC && sym.st_size > 0){
+      //printf("%s\n", strs + sym.st_name);
+      funcs[func_index] = create_func((char*)(strs + sym.st_name));
+      func_index++;
+    }
   }
+}
+
+static function create_func(char *name){
+  function f = { name, NULL };
+  return f;
 }
 
 //////////////// HELPERS ///////////////////////
