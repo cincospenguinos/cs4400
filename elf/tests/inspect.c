@@ -20,20 +20,14 @@ static void check_for_shared_object(Elf64_Ehdr *ehdr);
 static void fail(char *reason, int err_code);
 
 /* Definition of a function */
-typedef struct function {
-  char *func_name;
-  char *var_names;
-  struct function *next;
-}function;
+
 
 /* My functions */
 static void print_functions();
 static void get_all_functions(Elf64_Ehdr*);
-static void add_function(function f);
 static void get_dyn_vars(Elf64_Ehdr*);
+
 // Variables I care about
-static function *head;
-static function *current_function;
 static Elf64_Shdr *dynsym;
 static Elf64_Shdr *dynstr;
 
@@ -118,17 +112,14 @@ static void print_functions(){
 
 
 static void get_all_functions(Elf64_Ehdr *ehdr){
-  // TODO
-}
+  Elf64_Sym *syms = AT_SEC(ehdr, dynsym);
+  char *strs = AT_SEC(ehdr, dynstr);
+  int i, count = dynsym->sh_size / sizeof(Elf64_Sym);
 
-/**
- * Adds the function provided to the linked list.
- */
-static void add_function(function f){
-  // TODO: This
-  if(head == NULL){
-    head = &f;
-    current_function = &f;
+  for (i = 0; i < count; i++) {
+    Elf64_Sym sym = syms[i];
+    if(ELF64_ST_TYPE(sym.st_info) == STT_FUNC && sym.st_size > 0)
+      printf("%s\n", strs + sym.st_name);
   }
 }
 
