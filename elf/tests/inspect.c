@@ -19,22 +19,25 @@
 static void check_for_shared_object(Elf64_Ehdr *ehdr);
 static void fail(char *reason, int err_code);
 
+/* Structure to hold data on functions */
+typedef struct function {
+  char *name;
+  char *variables[5];
+  unsigned int var_count = 0;
+}function;
+
 /* My functions */
 static void print_functions();
 static void get_all_functions(Elf64_Ehdr*);
 static void get_dyn_vars(Elf64_Ehdr*);
-
-/* Structure to hold data on function calls */
-typedef struct function {
-  char *name;
-  struct function *next;
-}function;
-
 static function create_func(char*);
+static void get_all_vars(Elf64_Ehdr*);
 
 // Variables I care about
 static Elf64_Shdr *dynsym;
 static Elf64_Shdr *dynstr;
+static Elf64_Shdr *text;
+
 static function funcs[FUNC_ARRAY_SIZE];
 static unsigned int func_index = 0;
 
@@ -70,6 +73,7 @@ int main(int argc, char **argv) {
   /* Add a call to your work here */
   get_dyn_vars(ehdr);
   get_all_functions(ehdr);
+  get_all_vars(ehdr);
   print_functions();
 
   return 0;
@@ -91,6 +95,8 @@ static void get_dyn_vars(Elf64_Ehdr *ehdr){
     } else if(strcmp(name, ".dynstr") == 0){
       //printf("Found .dynstr\n");
       dynstr = &section_headers[i];
+    } else if(strcmp(name, ".text") == 0){
+      text = &section_headers[i];
     }
   }
 }
@@ -118,8 +124,18 @@ static void get_all_functions(Elf64_Ehdr *ehdr){
 }
 
 static function create_func(char *name){
-  function f = { name, NULL };
+  function f = { name, 0 };
   return f;
+}
+
+static void get_all_vars(Elf64_Ehdr* ehdr){
+  /**
+   * GAMEPLAN
+   *
+   * So we need to go into the code section itself and take a look around
+   * to figure out what vars we use and stuff. And then we will add them
+   * to our collection.
+   */
 }
 
 //////////////// HELPERS ///////////////////////
