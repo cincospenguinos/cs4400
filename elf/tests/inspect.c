@@ -20,31 +20,13 @@ static void check_for_shared_object(Elf64_Ehdr *ehdr);
 static void fail(char *reason, int err_code);
 
 /* My functions */
-static void print_functions();
+static void print_functions(Elf64_Ehdr*);
 static void get_all_functions(Elf64_Ehdr*);
 static void get_dyn_vars(Elf64_Ehdr*);
 
 // Variables I care about
 static Elf64_Shdr *dynsym;
 static Elf64_Shdr *dynstr;
-
-/**
- * GAMEPLAN
- *
- * So I'm pretty far over my head on this one, but I'm going to give it a shot.
- *
- * We can move through the file as many times as we want, so why don't we make
- * a shitty datastructure and populate it as we go? Just grab the names of all
- * the functions and then worry about throwing in the variables later.
- *
- * Here's what I'm thinking we could do:
- * 
- * - Find the .dynsym section. That will help us get a hold of the .dynstr
- *   section, which will hold the function names
- * - Loop through the functions until we get one that is not empty
- * - Dump in the structure
- * - Print out all the functions
- */
 
 int main(int argc, char **argv) {
   int fd;
@@ -77,8 +59,7 @@ int main(int argc, char **argv) {
 
   /* Add a call to your work here */
   get_dyn_vars(ehdr);
-  get_all_functions(ehdr);
-  print_functions();
+  print_functions(ehdr);
 
   return 0;
 }
@@ -93,31 +74,34 @@ static void get_dyn_vars(Elf64_Ehdr *ehdr){
   for(i = 0; i < ehdr->e_shnum; i++){
     char *name = section_names + section_headers[i].sh_name;
 
-    if(strcmp(name, ".dynsym") == 0){
-      //printf("Found .dynsym.\n");
+    if(strcmp(name, ".dynsym") == 0)
       dynsym = &section_headers[i];
-    } else if(strcmp(name, ".dynstr") == 0){
-      //printf("Found .dynstr\n");
+    else if(strcmp(name, ".dynstr") == 0)
       dynstr = &section_headers[i];
-    }
   }
 }
 
-static void print_functions(){
-  // TODO
-}
-
-
-static void get_all_functions(Elf64_Ehdr *ehdr){
+/**
+ * Print functions and variables
+ */
+static void print_functions(Elf64_Ehdr *ehdr){
   Elf64_Sym *syms = AT_SEC(ehdr, dynsym);
   char *strs = AT_SEC(ehdr, dynstr);
   int i, count = dynsym->sh_size / sizeof(Elf64_Sym);
 
   for (i = 0; i < count; i++) {
     Elf64_Sym sym = syms[i];
-    if(ELF64_ST_TYPE(sym.st_info) == STT_FUNC && sym.st_size > 0)
+
+    // If we find the proper function, we need to go and check for variables
+    if(ELF64_ST_TYPE(sym.st_info) == STT_FUNC && sym.st_size > 0){
       printf("%s\n", strs + sym.st_name);
+    }
   }
+}
+
+
+static void get_all_functions(Elf64_Ehdr *ehdr){
+  
 }
 
 //////////////// HELPERS ///////////////////////
