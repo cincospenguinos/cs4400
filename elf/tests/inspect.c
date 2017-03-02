@@ -21,12 +21,13 @@ static void fail(char *reason, int err_code);
 
 /* My functions */
 static void print_functions(Elf64_Ehdr*);
-static void get_all_functions(Elf64_Ehdr*);
 static void get_dyn_vars(Elf64_Ehdr*);
 
 // Variables I care about
 static Elf64_Shdr *dynsym;
 static Elf64_Shdr *dynstr;
+static Elf64_Shdr *text;
+
 
 int main(int argc, char **argv) {
   int fd;
@@ -78,6 +79,8 @@ static void get_dyn_vars(Elf64_Ehdr *ehdr){
       dynsym = &section_headers[i];
     else if(strcmp(name, ".dynstr") == 0)
       dynstr = &section_headers[i];
+    else if(strcmp(name, ".text") == 0)
+      text = &section_headers[i];
   }
 }
 
@@ -92,16 +95,20 @@ static void print_functions(Elf64_Ehdr *ehdr){
   for (i = 0; i < count; i++) {
     Elf64_Sym sym = syms[i];
 
-    // If we find the proper function, we need to go and check for variables
     if(ELF64_ST_TYPE(sym.st_info) == STT_FUNC && sym.st_size > 0){
       printf("%s\n", strs + sym.st_name);
+
+      // Now let's print out the variables
+      // This line gives you the first instruction of the current function
+      //AT_SEC(ehdr, text) + (sym.st_value - text->sh_addr)
+      int j;
+      for(j = 0; j < 10; j++)
+	printf("%x\n", AT_SEC(ehdr, text) + (sym.st_value - text->sh_addr) + j * 8);
+
+      // TODO: Read everything instruction by instruction
+
     }
   }
-}
-
-
-static void get_all_functions(Elf64_Ehdr *ehdr){
-  
 }
 
 //////////////// HELPERS ///////////////////////
