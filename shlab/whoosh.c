@@ -9,9 +9,9 @@
 
 static void run_script(script *scr);
 static void run_group(script_group *group);
-static void run_command(script_command *command);
+static void run_command(script_command *command, int *fds);
 static void set_var(script_var *var, int new_value);
-
+static void print_var(script_var *var);
 /** Let's take some notes
  *
  * - A "group" is a collection of commands put all together to work together somehow.
@@ -21,7 +21,7 @@ static void set_var(script_var *var, int new_value);
  *   separately, and finish when one of them is done."
  */
 
-/* CURRENT TODO: Let's get repeat to work */
+/* CURRENT TODO: Let's now try variables */
 
 /* You probably shouldn't change main at all. */
 
@@ -47,27 +47,38 @@ static void run_script(script *src) {
   for(i = 0; i < groups; i++){
     run_group(&src->groups[i]);
   }
-  /*
-  if(groups == 1)
-    run_group(&src->groups[0]);
-  else
-  fail("Only 1 group supported at this time");*/
 }
 
 static void run_group(script_group *group) {
-  /* You'll have to make run_group do better than this, too */
-  //if (group->repeats != 1)
-  //fail("only repeat 1 supported");
-  if (group->result_to != NULL){
-    fail("setting variables not supported");
-  }
   if (group->num_commands != 1) {
     fail("only 1 command supported");
   }
 
+  int fds[2]; // Our file descriptors for this group
+
   int r;
   for(r = 0; r < group->repeats; r++){
-    run_command(&group->commands[0]); // Note that we will have multiple commands to run!
+    int i;
+    for(i = 0; i < group->num_commands; i++){
+      script_command current_command = group->commands[i];
+      run_command(&current_command, fds);
+
+      if(group->result_to != NULL){
+	char buffer[32];
+
+	// Close our file descriptor
+	Close(fds[1]);
+
+	// Wait on the command
+	int status;
+	wait(&status);
+
+	// Read the input into the buffer
+	Read(fds[0], buffer, 31);
+	group->result_to->value = buffer;
+	print_var(group->result_to);
+      }
+    }
   }
 }
 
@@ -75,7 +86,7 @@ static void run_group(script_group *group) {
    the command as a replacement for the `whoosh` script, instead of
    creating a new process. */
 
-static void run_command(script_command *command) {
+static void run_command(script_command *command, int *fds) {
   const char **argv;
   int i;
 
@@ -91,16 +102,20 @@ static void run_command(script_command *command) {
   
   argv[command->num_arguments + 1] = NULL; // argv must end with NULL
 
+  // We need to get the output out from the child process
+  Pipe(fds);
+
   pid_t child = fork();
 
   if(child == 0){
+    dup2(fds[1], 1);
     Execve(argv[0], (char * const *)argv, environ);
   } else {
-    // TODO: I'm pretty sure I want a global of some sort in order to let
-    // the parent know what's happening. Maybe I'll return pid_t instead and
-    // have run_group() manage all of that.
-    int status;
-    wait(&status);
+    // Save the variable if need be
+    if(command->pid_to != NULL){
+      //printf("Need to set a variable for this command!\n");
+      set_var(command->pid_to, child);
+    }
     free(argv);
   }
 }
@@ -114,4 +129,9 @@ static void set_var(script_var *var, int new_value) {
   free((void *)var->value);
   snprintf(buffer, sizeof(buffer), "%d", new_value);
   var->value = strdup(buffer);
+}
+
+static void print_var(script_var *var){
+  printf("%s\n", var->name);
+  printf("\t%s\n", var->value);
 }

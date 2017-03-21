@@ -1,3 +1,5 @@
 # A small script for me to modify and mess around with things
 
-repeat 100 /usr/bin/echo "Hello"
+$var = /usr/bin/echo "Hello"
+/bin/echo $var
+
