@@ -101,12 +101,33 @@ static void print_functions(Elf64_Ehdr *ehdr){
       // Now let's print out the variables
       // This line gives you the first instruction of the current function
       //AT_SEC(ehdr, text) + (sym.st_value - text->sh_addr)
-      int j;
-      for(j = 0; j < 10; j++)
-	printf("%x\n", AT_SEC(ehdr, text) + (sym.st_value - text->sh_addr) + j * 8);
+      //int j;
+      //for(j = 0; j < 10; j++)
+      //printf("%x\n", AT_SEC(ehdr, text) + (sym.st_value - text->sh_addr) + j * 8);
 
       // TODO: Read everything instruction by instruction
+      int j = 0;
+      char *op = AT_SEC(ehdr, text) + (sym.st_value - text->sh_addr);
+      while(op[j] != 0xc3 || j < 30){
+	uint8_t byte = (uint8_t)op[j];
+	switch(byte){
+	case 0xc3:
+	  printf("return\n");
+	case 0xe9:
+	case 0xeb:
+	  printf("jump\n");
+	case 0x48:
+	  printf("");
+	  uint8_t next_byte = (uint8_t)op[j + 1];
+	  if(next_byte == 0x8b){
+	    printf("This should be a variable\n");
+	  }
+	default:
+	  printf("%x\n", byte);
+	}
 
+	  j++;
+      }
     }
   }
 }

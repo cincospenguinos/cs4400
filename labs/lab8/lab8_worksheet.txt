@@ -1,0 +1,55 @@
+CS4400 Spring 2017 Lab8 Worksheet:
+
+Name: 
+
+1. What is the output of pstree for your username?
+
+sshd───bash─┬─emacs
+            └─pstree
+
+2. If we were to add any code below the call to execve, would it ever execute?
+
+Nope. execve() simply replaces the process with another.
+
+*Note* The below questions do not require a perfect golf solution (fewest number of fork calls). Just start with anything that produces the correct graph. Try to find the minimal solution on your own time.
+
+3. Paste your code for Target 1
+
+if(fork() != 0)
+      fork();
+
+4: Paste your code for Target 2
+
+int secondchild = fork();
+    if(secondchild == 0){
+      if(fork() != 0)
+      fork();
+    }
+
+5: Paste your code for Target 3
+
+   fork();
+   fork();
+   fork();
+
+6: Paste your code for Target 4
+
+int second = fork();
+    if(second){
+      int a = fork();
+      if(!a){
+	if(fork())
+	  fork();
+	else
+	  fork();
+      }
+    }
+    else {
+      int b = fork();
+      if(b){
+	if(!fork()) fork();
+      } else {
+	if(!fork())
+	  fork();
+      }
+    }

@@ -1,0 +1,4 @@
+# A small script for me to modify and mess around with things
+
+/usr/bin/echo "Hello"
+/usr/bin/echo "Hello again"
