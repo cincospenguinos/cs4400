@@ -21,6 +21,8 @@ static void set_var(script_var *var, int new_value);
  *   separately, and finish when one of them is done."
  */
 
+/* CURRENT TODO: Let's get repeat to work */
+
 /* You probably shouldn't change main at all. */
 
 int main(int argc, char **argv) {
@@ -54,8 +56,8 @@ static void run_script(script *src) {
 
 static void run_group(script_group *group) {
   /* You'll have to make run_group do better than this, too */
-  if (group->repeats != 1)
-    fail("only repeat 1 supported");
+  //if (group->repeats != 1)
+  //fail("only repeat 1 supported");
   if (group->result_to != NULL){
     fail("setting variables not supported");
   }
@@ -65,7 +67,7 @@ static void run_group(script_group *group) {
 
   int r;
   for(r = 0; r < group->repeats; r++){
-    run_command(&group->commands[0]);
+    run_command(&group->commands[0]); // Note that we will have multiple commands to run!
   }
 }
 

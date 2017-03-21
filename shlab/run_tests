@@ -1,0 +1,7 @@
+#!/usr/bin/env ruby
+#
+# Script that runs all of the tests and shows their output
+
+Dir['scripts/basic/*.whoosh'].each do |file|
+  puts `racket test.rkt #{file}`
+end
