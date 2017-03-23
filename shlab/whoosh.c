@@ -66,24 +66,41 @@ static void run_group(script_group *group) {
 	wait(&status);
       }
     } else if (group->mode == GROUP_AND) {
-      int fds[2];
+      int file_descriptors[group->num_commands - 1][2];
+      int fd_index = 0;
       int i;
 
-      Pipe(fds);
+      int *fds_old;
+      int *fds_new;
 
+      // All the previous commands
       for(i = 0; i < group->num_commands - 1; i++){
+        fds_old = file_descriptors[fd_index - 1];
+	fds_new = file_descriptors[fd_index];
+
+	Pipe(fds_new);
+
 	if (fork() == 0) {
-	  dup2(fds[1], 1);
+	  if (i == 0) dup2(fds_new[1], 1);
+	  else {
+	    dup2(fds_old[0], 0);
+	    dup2(fds_new[1], 1);
+	  }
+
 	  run_command(&group->commands[i]);
 	} else {
 	  int status;
 	  wait(&status);
-	  Close(fds[1]);
+
+	  Close(fds_new[1]);	  
+	  fds_old = fds_new;
+	  fd_index++;
 	}
       }
 
+      // The last command
       if (fork() == 0) {
-	dup2(fds[0], 0);
+	dup2(fds_old[0], 0);
 	run_command(&group->commands[i]);
       } else {
 	int status;
