@@ -55,44 +55,16 @@ static void run_script(script *src) {
 }
 
 static void run_group(script_group *group) {
-  int r;
-  int i;
-
-  for(r = 0; r < group->repeats; r++) {
-
-    if (group->mode == GROUP_AND) {
-      int total_pipes = group->num_commands - 1;
-      int pipe_index = 0;
-      int fds[total_pipes][2];
-
-      for(i = 0; i < group->num_commands; i++) {
-	script_command current_command = group->commands[i];
-
-	int *fd = fds[pipe_index];
-        Pipe(fds[pipe_index]);
-
-	if (fork() == 0){
-	  if(pipe_index == 0) // First pipe, output to STD_OUT
-	    dup2(fd[1], 1);
-	  else if(pipe_index - 1 == total_pipes) // Last pipe, input to STD_IN
-	    dup2(fd[0], 0);
-	  else { // In between, output previous to input next
-	    dup2(fd[0], 0);
-	    dup2(fd[1], 1);
-	  }
-
-	  run_command(&current_command);
-	} else {
-	  pipe_index++;
-
-	  Close(fd[0]);
-	  Close(fd[1]);
-	}
+  int repeats;
+  for (repeats = 0; repeats < group->repeats; repeats++){
+    
+    if (group->mode == GROUP_SINGLE){
+      if (fork() == 0) 
+	run_command(&group->commands[0]);
+      else {
+	int status;
+	wait(&status);
       }
-    } else if (group->mode == GROUP_OR){
-
-    } else {
-      run_command(&group->commands[0]);
     }
   }
 }
