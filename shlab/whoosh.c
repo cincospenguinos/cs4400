@@ -65,7 +65,7 @@ static void run_group(script_group *group) {
 	int status;
 	wait(&status);
       }
-    } else if (group->mode == GROUP_AND) {
+    } else if (group->mode == GROUP_AND) { // This doesn't work with cat
       int file_descriptors[group->num_commands - 1][2];
       int fd_index = 0;
       int i;
@@ -97,7 +97,6 @@ static void run_group(script_group *group) {
 	}
       }
 
-      // The last command
       if (fork() == 0) {
 	dup2(fds_old[0], 0);
 	run_command(&group->commands[i]);
