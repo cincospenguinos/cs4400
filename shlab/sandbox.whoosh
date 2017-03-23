@@ -1,5 +1,3 @@
 # A small script for me to modify and mess around with things
 
-$var = /usr/bin/echo "Hello"
-/bin/echo $var
-
+/usr/bin/echo "Hello" | /usr/bin/grep "H"

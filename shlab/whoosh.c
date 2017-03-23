@@ -12,6 +12,7 @@ static void run_group(script_group *group);
 static void run_command(script_command *command, int *fds);
 static void set_var(script_var *var, int new_value);
 static void print_var(script_var *var);
+
 /** Let's take some notes
  *
  * - A "group" is a collection of commands put all together to work together somehow.
@@ -40,6 +41,10 @@ int main(int argc, char **argv) {
   return 0;
 }
 
+// TODO: Variables
+// TODO: AND Commands
+// TODO: OR Commands
+
 static void run_script(script *src) {
   // TODO: You may need to protect yourself here
   int groups = src->num_groups;
@@ -50,33 +55,41 @@ static void run_script(script *src) {
 }
 
 static void run_group(script_group *group) {
-  if (group->num_commands != 1) {
-    fail("only 1 command supported");
-  }
-
-  int fds[2]; // Our file descriptors for this group
-
   int r;
-  for(r = 0; r < group->repeats; r++){
+  for(r = 0; r < group->repeats; r++) {
     int i;
+
     for(i = 0; i < group->num_commands; i++){
       script_command current_command = group->commands[i];
-      run_command(&current_command, fds);
+      char buffer[32];
+      int fds[2];
 
-      if(group->result_to != NULL){
-	char buffer[32];
+      if (group->mode == GROUP_AND) {
+	if(i + 1 == group->num_commands){
+	  Pipe(fds);
+	  Write(fds[1], buffer, 31);
+	  Close(fds[1]);
+	  run_command(&current_command, fds);
+	} else {
+	  // Setup some file descriptors and open up a pipe
+	  Pipe(fds);
 
-	// Close our file descriptor
-	Close(fds[1]);
+	  // Run the command
+	  run_command(&current_command, fds);
 
-	// Wait on the command
-	int status;
-	wait(&status);
+	  // Close the file descriptor and wait until the process is done
+	  Close(fds[1]);
 
-	// Read the input into the buffer
-	Read(fds[0], buffer, 31);
-	group->result_to->value = buffer;
-	print_var(group->result_to);
+	  int status;
+	  wait(&status);
+
+	  // Get what was being output
+	  Read(fds[0], buffer, 31);
+	}
+      } else if (group->mode == GROUP_OR) {
+
+      } else { // GROUP_SINGLE
+	run_command(&current_command, NULL);
       }
     }
   }
@@ -86,7 +99,7 @@ static void run_group(script_group *group) {
    the command as a replacement for the `whoosh` script, instead of
    creating a new process. */
 
-static void run_command(script_command *command, int *fds) {
+static void run_command(script_command *command, int *fds ) {
   const char **argv;
   int i;
 
@@ -103,12 +116,14 @@ static void run_command(script_command *command, int *fds) {
   argv[command->num_arguments + 1] = NULL; // argv must end with NULL
 
   // We need to get the output out from the child process
-  Pipe(fds);
+  //Pipe(fds);
 
   pid_t child = fork();
 
   if(child == 0){
-    dup2(fds[1], 1);
+    if (fds != NULL) dup2(fds[1], 1);
+    Close(fds[1]);
+    Close(fds[0]);
     Execve(argv[0], (char * const *)argv, environ);
   } else {
     // Save the variable if need be
