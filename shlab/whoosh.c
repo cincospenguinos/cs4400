@@ -58,13 +58,40 @@ static void run_group(script_group *group) {
   int repeats;
   for (repeats = 0; repeats < group->repeats; repeats++){
     
-    if (group->mode == GROUP_SINGLE){
+    if (group->mode == GROUP_SINGLE) {
       if (fork() == 0) 
 	run_command(&group->commands[0]);
       else {
 	int status;
 	wait(&status);
       }
+    } else if (group->mode == GROUP_AND) {
+      int fds[2];
+      int i;
+
+      Pipe(fds);
+
+      for(i = 0; i < group->num_commands - 1; i++){
+	if (fork() == 0) {
+	  dup2(fds[1], 1);
+	  run_command(&group->commands[i]);
+	} else {
+	  int status;
+	  wait(&status);
+	  Close(fds[1]);
+	}
+      }
+
+      if (fork() == 0) {
+	dup2(fds[0], 0);
+	run_command(&group->commands[i]);
+      } else {
+	int status;
+	wait(&status);
+	//Close(fds[1]);
+      }
+    } else { // group->mode == GROUP_OR
+      
     }
   }
 }
