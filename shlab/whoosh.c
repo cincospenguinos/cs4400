@@ -73,7 +73,6 @@ static void run_group(script_group *group) {
       int *fds_old;
       int *fds_new;
 
-      // All the previous commands
       for(i = 0; i < group->num_commands - 1; i++){
         fds_old = file_descriptors[fd_index - 1];
 	fds_new = file_descriptors[fd_index];
@@ -105,10 +104,16 @@ static void run_group(script_group *group) {
       } else {
 	int status;
 	wait(&status);
-	//Close(fds[1]);
       }
     } else { // group->mode == GROUP_OR
-      
+      int i;
+      for(i = 0; i < group->num_commands; i++) {
+	if(fork() == 0)
+	  run_command(&group->commands[i]);
+      }
+
+      int status;
+      Waitpid(0, &status, 0);
     }
   }
 }
