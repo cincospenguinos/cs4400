@@ -128,8 +128,15 @@ static void run_command(script_command *command) {
   for (i = 0; i < command->num_arguments; i++) {
     if (command->arguments[i].kind == ARGUMENT_LITERAL)
       argv[i+1] = command->arguments[i].u.literal;
-    else
+    else {
+      set_var(command->arguments[i].u.var, getpid());
       argv[i+1] = command->arguments[i].u.var->value;
+    }
+  }
+
+  if (command->pid_to != NULL){
+    set_var(command->pid_to, getpid());
+    print_var(command->pid_to);
   }
   
   argv[command->num_arguments + 1] = NULL; // argv must end with NULL

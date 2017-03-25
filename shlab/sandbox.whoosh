@@ -1,3 +1,3 @@
 # A small script for me to modify and mess around with things
 
-/usr/bin/echo "Hello" | /usr/bin/wc -l
+/bin/bash -c "exit 0" @ $bash | /bin/echo $bash
