@@ -42,11 +42,8 @@ int main(int argc, char **argv) {
 }
 
 // TODO: Variables
-// TODO: AND Commands
-// TODO: OR Commands
 
 static void run_script(script *src) {
-  // TODO: You may need to protect yourself here
   int groups = src->num_groups;
   int i;
   for(i = 0; i < groups; i++){
@@ -57,20 +54,12 @@ static void run_script(script *src) {
 static void run_group(script_group *group) {
   int repeats;
   for (repeats = 0; repeats < group->repeats; repeats++){
-    
-    if (group->mode == GROUP_SINGLE) {
-      if (fork() == 0) 
-	run_command(&group->commands[0]);
-      else {
-	int status;
-	wait(&status);
-      }
-    } else if (group->mode == GROUP_AND) { // This doesn't work with cat
+    if (group->mode == GROUP_AND) { // This doesn't work with cat
       int file_descriptors[group->num_commands - 1][2];
       int fd_index = 0;
       int i;
 
-      int *fds_old;
+      int *fds_old = NULL;
       int *fds_new;
 
       for(i = 0; i < group->num_commands - 1; i++){
@@ -78,14 +67,16 @@ static void run_group(script_group *group) {
 	fds_new = file_descriptors[fd_index];
 
 	Pipe(fds_new);
+	pid_t child_pid = fork();
 
-	if (fork() == 0) {
+	if (child_pid == 0) {
 	  if (i == 0) dup2(fds_new[1], 1);
 	  else {
 	    dup2(fds_old[0], 0);
 	    dup2(fds_new[1], 1);
 	  }
-
+	  
+	  
 	  run_command(&group->commands[i]);
 	} else {
 	  int status;
@@ -97,18 +88,24 @@ static void run_group(script_group *group) {
 	}
       }
 
-      if (fork() == 0) {
+      pid_t child_pid = fork();
+
+      if (child_pid == 0) {
 	dup2(fds_old[0], 0);
 	run_command(&group->commands[i]);
       } else {
 	int status;
 	wait(&status);
       }
-    } else { // group->mode == GROUP_OR
+    } else { // group->mode == GROUP_OR || group->mode == GROUP_SINGLE
       int i;
       for(i = 0; i < group->num_commands; i++) {
-	if(fork() == 0)
+	pid_t child_pid = fork();
+
+	if(child_pid == 0){
+	  
 	  run_command(&group->commands[i]);
+	}
       }
 
       int status;
