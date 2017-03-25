@@ -74,8 +74,7 @@ static void run_group(script_group *group) {
 	  else {
 	    dup2(fds_old[0], 0);
 	    dup2(fds_new[1], 1);
-	  }
-	  
+	  }	  
 	  
 	  run_command(&group->commands[i]);
 	} else {
