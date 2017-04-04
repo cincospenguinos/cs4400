@@ -58,7 +58,7 @@ chunk_header *first_chunk; // The first chunk in our list
 static char buffer[32]; // To print stuff
 static int chunk_count = 0; // Number of chunks
 void validate_memory();
-void write_info(const char[], int);
+void write_info(const char[]);
 
 /* 
  * mm_init - initialize the malloc package.
@@ -103,11 +103,25 @@ static chunk_header* get_new_chunk(size_t size, chunk_header *old_chunk){
 }
 
 /* 
- * mm_malloc - Allocate a block by using bytes from current_avail,
- *     grabbing a new page if necessary.
+ * mm_malloc - Allocate a block
  */
 void *mm_malloc(size_t size)
 {
+
+  // TODO: Malloc here!
+  void *mem;
+  size = ALIGN(size);
+  chunk_header *current, *old;
+  current = first_chunk;
+
+  while(current != NULL){
+    old = current;
+    current = current->next;
+  }
+
+  // First try allocating within each chunk
+
+  // If no good chunk is found, create a new chunk and allocate there
   int newsize = ALIGN(size);
   void *p;
   
@@ -133,7 +147,7 @@ void *mm_malloc(size_t size)
  */
 void mm_free(void *ptr)
 {
-
+  // TODO
   validate_memory();
 }
 
@@ -149,11 +163,11 @@ void validate_memory(){
       // Make sure payloads always have addresses that end in 16
       if(((long)(&blk[1]) % 16) != 0){
 	sprintf(buffer, "Alignment error!\n");
-	write_info(buffer, 1);
+	write_info(buffer);
 	sprintf(buffer, "expected 0; got %i \n", (long)(&blk[1]) % 16);
-	write_info(buffer, 1);
+	write_info(buffer);
 	sprintf(buffer, "%i -> %i", size_of_block(blk), allocated(blk));
-	write_info(buffer, 1);
+	write_info(buffer);
 	exit(1);
       }
 
@@ -164,17 +178,18 @@ void validate_memory(){
     chunks++;
   }
 
+  // Make sure all chunks are accounted for
   if(chunks != chunk_count){
     sprintf(buffer, "Wrong number of chunks!\n");
-    write_info(buffer, 1);
+    write_info(buffer);
     sprintf(buffer, "Have %i; found %i\n", chunk_count, chunks);
-    write_info(buffer, 1);
+    write_info(buffer);
     exit(1);
   }
 }
 
-void write_info(const char str[], int output){
-  write(output, str, strlen(str));
+void write_info(const char str[]){
+  write(1, str, strlen(str));
 }
 
 static int size_of_block(block_header* hdr){
