@@ -30,7 +30,7 @@
 #define PAGE_ALIGN(size) (((size) + (mem_pagesize()-1)) & ~(mem_pagesize()-1))
 
 typedef struct chunk_header {
-  struct chunk_header *next_chunk;
+  struct chunk_header *next;
 } chunk_header;
 
 typedef size_t block_header;
@@ -38,33 +38,39 @@ typedef size_t block_header;
 /* Functions and definitions for block_headers */ // TODO: Maybe make this a function?
 #define GET_BLK_HDR(payload) ((block_header) ((char *) (payload)  - sizeof(block_header)));
 
-int size_of_block(block_header*);
-int allocated(block_header*);
-void set_block(int allocated, size_t size, block_header *header_ptr);
+static chunk_header* get_new_chunk(size_t, chunk_header*);
+static block_header* first_block_in_chunk(chunk_header*);
+static block_header* last_block_in_chunk(chunk_header*, size_t);
+static block_header* next_block(block_header*);
+static int terminating_block(block_header*);
+
+static int size_of_block(block_header*); // Size of a block
+static int allocated(block_header*); // Whether or not the block is allocated
+static void set_block(int, size_t, block_header*);
 
 void *current_avail = NULL;
 int current_avail_size = 0;
 
-chunk_header *first_chunk;
-//block_header *first_block;
+chunk_header *first_chunk; // The first chunk in our list
 
-static char buffer[32]; // For debugging
+/* All of this is for debugging */
 
-/* Returns a new chunk with the appropriate header */
-chunk_header* get_new_chunk(size_t size);
-
-/* Validates whether or not the memory is setup properly */
+static char buffer[32]; // To print stuff
+static int chunk_count = 0; // Number of chunks
 void validate_memory();
-
-/* Prints to STDOUT */
-void write_info(const char[]);
+void write_info(const char[], int);
 
 /* 
  * mm_init - initialize the malloc package.
  */
 int mm_init(void)
 {
-  first_chunk = get_new_chunk(PAGE_ALIGN(STARTING_CHUNK_SIZE));
+  chunk_count = 0;
+
+  first_chunk = get_new_chunk(PAGE_ALIGN(STARTING_CHUNK_SIZE), NULL);
+
+  if(first_chunk == NULL)
+    return -1;
 
   current_avail_size = PAGE_ALIGN(STARTING_CHUNK_SIZE);
   current_avail = mem_map(current_avail_size);
@@ -75,7 +81,7 @@ int mm_init(void)
   return 0;
 }
 
-chunk_header* get_new_chunk(size_t size){
+static chunk_header* get_new_chunk(size_t size, chunk_header *old_chunk){
   size = PAGE_ALIGN(size);
   void *chunk = mem_map(size);
   
@@ -83,12 +89,15 @@ chunk_header* get_new_chunk(size_t size){
     return NULL;
   
   chunk_header *c_hdr = &((chunk_header*) chunk)[0];
+  c_hdr->next = old_chunk;
 
-  block_header *first = &((block_header*) chunk)[1];
+  block_header *first = first_block_in_chunk(c_hdr);
   set_block(0, size - 24, first);
 
-  block_header *last = ((block_header*) chunk)[size / sizeof(block_header) - 1];
+  block_header *last =  last_block_in_chunk(c_hdr, size);
   set_block(1, 0, last);
+
+  chunk_count++;
 
   return c_hdr;
 }
@@ -99,10 +108,6 @@ chunk_header* get_new_chunk(size_t size){
  */
 void *mm_malloc(size_t size)
 {
-  static char buffer[] = "                    ";
-  sprintf(buffer, "%p\n", &first_chunk);
-  //write_info(buffer);
-
   int newsize = ALIGN(size);
   void *p;
   
@@ -112,10 +117,6 @@ void *mm_malloc(size_t size)
     
     if (current_avail == NULL)
       return NULL;
-
-    //static char buffer[] = "             \n";
-    //sprintf(buffer, "%p\n", current_avail);
-    //write_info(buffer);
   }
 
   p = current_avail;
@@ -137,22 +138,70 @@ void mm_free(void *ptr)
 }
 
 void validate_memory(){
-  // TODO: This
+  chunk_header *chunk_hdr = first_chunk;
+  int chunks = 0;
+
+  while(chunk_hdr != NULL){
+    block_header *blk = first_block_in_chunk(chunk_hdr);
+
+    while(!terminating_block(blk)){
+
+      // Make sure payloads always have addresses that end in 16
+      if(((long)(&blk[1]) % 16) != 0){
+	sprintf(buffer, "Alignment error!\n");
+	write_info(buffer, 1);
+	sprintf(buffer, "expected 0; got %i \n", (long)(&blk[1]) % 16);
+	write_info(buffer, 1);
+	sprintf(buffer, "%i -> %i", size_of_block(blk), allocated(blk));
+	write_info(buffer, 1);
+	exit(1);
+      }
+
+      blk = next_block(blk);
+    }
+
+    chunk_hdr = first_chunk->next;
+    chunks++;
+  }
+
+  if(chunks != chunk_count){
+    sprintf(buffer, "Wrong number of chunks!\n");
+    write_info(buffer, 1);
+    sprintf(buffer, "Have %i; found %i\n", chunk_count, chunks);
+    write_info(buffer, 1);
+    exit(1);
+  }
 }
 
-void write_info(const char str[]){
-  write(1, str, strlen(str));
+void write_info(const char str[], int output){
+  write(output, str, strlen(str));
 }
 
-int size_of_block(block_header* hdr){
+static int size_of_block(block_header* hdr){
   return *hdr & 0xfffffff8;
 }
 
-int allocated(block_header* hdr){
+static int allocated(block_header* hdr){
   return *hdr & 0x1;
 }
 
-void set_block(int allocated, size_t size, block_header *hdr){
+static void set_block(int allocated, size_t size, block_header *hdr){
   *hdr = (block_header) size;
   *hdr += allocated;
+}
+
+static block_header* first_block_in_chunk(chunk_header *hdr){
+  return (block_header*) &hdr[1];
+}
+
+static block_header* last_block_in_chunk(chunk_header *hdr, size_t chunk_size){
+  return (block_header*) &hdr[chunk_size / sizeof(block_header) - 2];
+}
+
+static block_header* next_block(block_header *hdr){
+  return &(hdr[size_of_block(hdr) / sizeof(block_header)]);
+}
+
+static int terminating_block(block_header *hdr){
+  return (size_of_block(hdr) == 0) && allocated(hdr);
 }
