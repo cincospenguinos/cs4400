@@ -21,7 +21,7 @@
 #define ALIGNMENT 16
 
 /* number of starting chunks */
-#define STARTING_CHUNK_SIZE 4096
+#define STARTING_CHUNK_SIZE 1 * 4096
 
 /* rounds up to the nearest multiple of ALIGNMENT */
 #define ALIGN(size) (((size) + (ALIGNMENT-1)) & ~(ALIGNMENT-1))
@@ -36,6 +36,7 @@ typedef struct chunk_header {
 typedef size_t block_header;
 
 /* Functions and definitions for block_headers */ // TODO: Maybe make this a function?
+#define OVERHEAD sizeof(block_header)
 #define GET_BLK_HDR(payload) ((block_header) ((char *) (payload)  - sizeof(block_header)));
 
 static chunk_header* get_new_chunk(size_t, chunk_header*);
@@ -43,6 +44,8 @@ static block_header* first_block_in_chunk(chunk_header*);
 static block_header* last_block_in_chunk(chunk_header*, size_t);
 static block_header* next_block(block_header*);
 static int terminating_block(block_header*);
+
+static block_header* allocate_block(block_header*, size_t);
 
 static int size_of_block(block_header*); // Size of a block
 static int allocated(block_header*); // Whether or not the block is allocated
@@ -58,14 +61,14 @@ chunk_header *first_chunk; // The first chunk in our list
 static char buffer[32]; // To print stuff
 static int chunk_count = 0; // Number of chunks
 void validate_memory();
-void write_info(const char[]);
+void write_info();
 
 /* 
  * mm_init - initialize the malloc package.
  */
 int mm_init(void)
 {
-  chunk_count = 0;
+  chunk_count = 0; // debugging
 
   first_chunk = get_new_chunk(PAGE_ALIGN(STARTING_CHUNK_SIZE), NULL);
 
@@ -89,7 +92,11 @@ static chunk_header* get_new_chunk(size_t size, chunk_header *old_chunk){
     return NULL;
   
   chunk_header *c_hdr = &((chunk_header*) chunk)[0];
-  c_hdr->next = old_chunk;
+  //c_hdr->next = old_chunk;
+  if (old_chunk != NULL)
+    old_chunk->next = c_hdr;
+
+  c_hdr->next = NULL;
 
   block_header *first = first_block_in_chunk(c_hdr);
   set_block(0, size - 24, first);
@@ -107,21 +114,29 @@ static chunk_header* get_new_chunk(size_t size, chunk_header *old_chunk){
  */
 void *mm_malloc(size_t size)
 {
-
-  // TODO: Malloc here!
-  void *mem;
   size = ALIGN(size);
-  chunk_header *current, *old;
-  current = first_chunk;
+  void *mem = NULL;
+  chunk_header *hdr = first_chunk;
 
-  while(current != NULL){
-    old = current;
-    current = current->next;
+  while (hdr != NULL) {
+
+    block_header *blk = first_block_in_chunk(hdr);
+
+    while (!terminating_block(blk)) {
+      if(size + OVERHEAD < size_of_block(blk)){
+	// TODO: Insert memory here
+	allocate_block(blk, size);
+	//sprintf(buffer, "Found a spot!\n");
+	//write_info();
+      }
+      blk = next_block(blk);
+    }
+
+    hdr = hdr->next;
   }
 
-  // First try allocating within each chunk
-
-  // If no good chunk is found, create a new chunk and allocate there
+  
+  ///// This is old stuff ///////
   int newsize = ALIGN(size);
   void *p;
   
@@ -163,11 +178,11 @@ void validate_memory(){
       // Make sure payloads always have addresses that end in 16
       if(((long)(&blk[1]) % 16) != 0){
 	sprintf(buffer, "Alignment error!\n");
-	write_info(buffer);
+	write_info();
 	sprintf(buffer, "expected 0; got %i \n", (long)(&blk[1]) % 16);
-	write_info(buffer);
+	write_info();
 	sprintf(buffer, "%i -> %i", size_of_block(blk), allocated(blk));
-	write_info(buffer);
+	write_info();
 	exit(1);
       }
 
@@ -181,15 +196,29 @@ void validate_memory(){
   // Make sure all chunks are accounted for
   if(chunks != chunk_count){
     sprintf(buffer, "Wrong number of chunks!\n");
-    write_info(buffer);
+    write_info();
     sprintf(buffer, "Have %i; found %i\n", chunk_count, chunks);
-    write_info(buffer);
+    write_info();
     exit(1);
   }
 }
 
-void write_info(const char str[]){
-  write(1, str, strlen(str));
+/* Allocates the amount of space requested. Returns new block pointer */
+static block_header* allocate_block(block_header *blk, size_t size) {
+  block_header *new_hdr = &blk[(size + OVERHEAD) / sizeof(block_header)];
+
+  sprintf(buffer, "OLD: %p\n", blk);
+  write_info();
+  sprintf(buffer, "NEW: %p\n", new_hdr);
+  write_info();
+  sprintf(buffer, "SIZE: %x\n", size + OVERHEAD);
+  write_info();
+
+  return blk;
+}
+
+void write_info(){
+  write(1, buffer, strlen(buffer));
 }
 
 static int size_of_block(block_header* hdr){
