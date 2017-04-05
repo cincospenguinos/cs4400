@@ -59,7 +59,8 @@ chunk_header *first_chunk; // The first chunk in our list
 /* All of this is for debugging */
 
 static char buffer[32]; // To print stuff
-static int chunk_count = 0; // Number of chunks
+static unsigned int chunk_count = 0; // Number of chunks
+static unsigned int block_count = 0; // Number of blocks
 void validate_memory();
 void write_info();
 
@@ -92,19 +93,20 @@ static chunk_header* get_new_chunk(size_t size, chunk_header *old_chunk){
     return NULL;
   
   chunk_header *c_hdr = &((chunk_header*) chunk)[0];
-  //c_hdr->next = old_chunk;
+
   if (old_chunk != NULL)
     old_chunk->next = c_hdr;
 
   c_hdr->next = NULL;
 
   block_header *first = first_block_in_chunk(c_hdr);
-  set_block(0, size - 24, first);
+  set_block(0, size - 24, first); // NOTE: the -16 = page header + block header + termination block
 
   block_header *last =  last_block_in_chunk(c_hdr, size);
   set_block(1, 0, last);
 
   chunk_count++;
+  block_count++;
 
   return c_hdr;
 }
@@ -126,13 +128,14 @@ void *mm_malloc(size_t size)
       if(size + OVERHEAD < size_of_block(blk)){
 	// TODO: Insert memory here
 	allocate_block(blk, size);
-	//sprintf(buffer, "Found a spot!\n");
-	//write_info();
+	break;
       }
       blk = next_block(blk);
     }
 
     hdr = hdr->next;
+
+    if (mem != NULL) break;
   }
 
   
@@ -169,6 +172,7 @@ void mm_free(void *ptr)
 void validate_memory(){
   chunk_header *chunk_hdr = first_chunk;
   int chunks = 0;
+  int blocks = 0;
 
   while(chunk_hdr != NULL){
     block_header *blk = first_block_in_chunk(chunk_hdr);
@@ -186,7 +190,29 @@ void validate_memory(){
 	exit(1);
       }
 
+      // I wrote this test, but I'm not sure what it does. I should have
+      // mentioned what exactly it was supposed to do
+      if(size_of_block(blk) % 16 != 0){
+	sprintf(buffer, "Size error!\n");
+	write_info();
+	sprintf(buffer, "Size was %d\n", size_of_block(blk));
+	write_info();
+	exit(1);
+      }
+
+      // Make sure that our block connection is correct
+      if(blocks > block_count){
+	// If this error fires, it could be due to overlooking the termination block
+	// in the current chunk. 
+	sprintf(buffer, "Block count error!\n");
+	write_info();
+	sprintf(buffer, "expected %i; counted %i\n", block_count, blocks);
+	write_info();
+	exit(1);
+      }
+
       blk = next_block(blk);
+      blocks++;
     }
 
     chunk_hdr = first_chunk->next;
@@ -205,14 +231,38 @@ void validate_memory(){
 
 /* Allocates the amount of space requested. Returns new block pointer */
 static block_header* allocate_block(block_header *blk, size_t size) {
-  block_header *new_hdr = &blk[(size + OVERHEAD) / sizeof(block_header)];
+  size = size + OVERHEAD;
+  block_header *new_hdr = &blk[size / sizeof(block_header)];
 
-  sprintf(buffer, "OLD: %p\n", blk);
+  if ((long) (new_hdr) % 16 == 0){ // move new_hdr by 8 bytes if new_hdr is on payload
+    new_hdr += 1;
+  }
+
+  sprintf(buffer, "Size req: %d\n", size);
   write_info();
-  sprintf(buffer, "NEW: %p\n", new_hdr);
+
+  size_t old_size = size_of_block(blk);
+
+  sprintf(buffer, "Old size: %d\n", old_size);
   write_info();
-  sprintf(buffer, "SIZE: %x\n", size + OVERHEAD);
+
+  // The * 8 below is due to the fact that our addresses are 8 byte aligned, and we
+  // are using the addresses to figure out the size
+  set_block(1, (size_t) ((new_hdr - blk) * 8), blk);
+
+  sprintf(buffer, "New blk size: %d\n", size_of_block(blk));
   write_info();
+
+  set_block(0, (size_t) old_size - (size_t) size_of_block(blk), new_hdr);
+  sprintf(buffer, "New hdr size: %d\n", size_of_block(new_hdr));
+  write_info();
+
+  if (terminating_block(new_hdr)){
+    sprintf(buffer, "ERROR! Overwriting termination block!\n");
+    exit(1);
+  }
+
+  block_count++;
 
   return blk;
 }
@@ -239,7 +289,7 @@ static block_header* first_block_in_chunk(chunk_header *hdr){
 }
 
 static block_header* last_block_in_chunk(chunk_header *hdr, size_t chunk_size){
-  return (block_header*) &hdr[chunk_size / sizeof(block_header) - 2];
+  return (block_header*) &hdr[chunk_size / sizeof(block_header) - 1];
 }
 
 static block_header* next_block(block_header *hdr){
