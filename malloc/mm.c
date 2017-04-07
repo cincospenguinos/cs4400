@@ -63,6 +63,7 @@ static unsigned int chunk_count = 0; // Number of chunks
 static unsigned int block_count = 0; // Number of blocks
 void validate_memory();
 void write_info();
+void error_info();
 
 /* 
  * mm_init - initialize the malloc package.
@@ -178,12 +179,28 @@ void validate_memory(){
     block_header *blk = first_block_in_chunk(chunk_hdr);
 
     while(!terminating_block(blk)){
+      long addr = (long) blk[1];
+      
+      // Make sure all headers are aligned on 8
+      if ((long)(blk) % 16 != 8){
+	sprintf(buffer, "Block header alignment error!\n");
+	write_info();
+	long val = ((long)(blk)) % 16;
+	
+	sprintf(buffer, "%i was the result\n", val);
+	write_info();
+	sprintf(buffer, "%p was the address\n", blk);
+	write_info();
+	error_info();
+	exit(1);
+      }
+
 
       // Make sure payloads always have addresses that end in 16
-      if(((long)(&blk[1]) % 16) != 0){
+      if(addr % 16 != 0){
 	sprintf(buffer, "Alignment error!\n");
 	write_info();
-	sprintf(buffer, "expected 0; got %i \n", (long)(&blk[1]) % 16);
+	sprintf(buffer, "expected 0; got %i \n", addr % 16);
 	write_info();
 	sprintf(buffer, "%i -> %i", size_of_block(blk), allocated(blk));
 	write_info();
@@ -192,13 +209,14 @@ void validate_memory(){
 
       // I wrote this test, but I'm not sure what it does. I should have
       // mentioned what exactly it was supposed to do
+      /*
       if(size_of_block(blk) % 16 != 0){
 	sprintf(buffer, "Size error!\n");
 	write_info();
 	sprintf(buffer, "Size was %d\n", size_of_block(blk));
 	write_info();
 	exit(1);
-      }
+	}*/
 
       // Make sure that our block connection is correct
       if(blocks > block_count){
@@ -231,34 +249,31 @@ void validate_memory(){
 
 /* Allocates the amount of space requested. Returns new block pointer */
 static block_header* allocate_block(block_header *blk, size_t size) {
-  size = size + OVERHEAD;
+  size = ALIGN(size + OVERHEAD);
+  sprintf(buffer, "Size: %d\n", size);
+  write_info();
   block_header *new_hdr = &blk[size / sizeof(block_header)];
-
-  if ((long) (new_hdr) % 16 == 0){ // move new_hdr by 8 bytes if new_hdr is on payload
+  
+  if ((long) (new_hdr) % 16 != 8){ // move new_hdr by 8 bytes if new_hdr is on payload
     new_hdr += 1;
   }
 
-  sprintf(buffer, "Size req: %d\n", size);
-  write_info();
-
   size_t old_size = size_of_block(blk);
-
-  sprintf(buffer, "Old size: %d\n", old_size);
-  write_info();
 
   // The * 8 below is due to the fact that our addresses are 8 byte aligned, and we
   // are using the addresses to figure out the size
   set_block(1, (size_t) ((new_hdr - blk) * 8), blk);
-
-  sprintf(buffer, "New blk size: %d\n", size_of_block(blk));
-  write_info();
-
   set_block(0, (size_t) old_size - (size_t) size_of_block(blk), new_hdr);
-  sprintf(buffer, "New hdr size: %d\n", size_of_block(new_hdr));
-  write_info();
+
+  //sprintf(buffer, "new_hdr's alignment: %i\n", ((long)(new_hdr) % 16));
+  //write_info();
+  //sprintf(buffer, "new_hdr's address: %p\n", new_hdr);
+  //write_info();
 
   if (terminating_block(new_hdr)){
     sprintf(buffer, "ERROR! Overwriting termination block!\n");
+    write_info();
+    error_info();
     exit(1);
   }
 
@@ -269,6 +284,17 @@ static block_header* allocate_block(block_header *blk, size_t size) {
 
 void write_info(){
   write(1, buffer, strlen(buffer));
+}
+
+void error_info(){
+  sprintf(buffer, "\\\\\\\\\\\\\\\\\\\n");
+  write_info();
+  sprintf(buffer, "Chunks: %i\n", chunk_count);
+  write_info();
+  sprintf(buffer, "Blocks: %i\n", block_count);
+  write_info();
+  sprintf(buffer, "\\\\\\\\\\\\\\\\\\\n");
+  write_info();
 }
 
 static int size_of_block(block_header* hdr){
@@ -293,6 +319,9 @@ static block_header* last_block_in_chunk(chunk_header *hdr, size_t chunk_size){
 }
 
 static block_header* next_block(block_header *hdr){
+  block_header *header = &(hdr[size_of_block(hdr) / sizeof(block_header)]);
+  sprintf(buffer, "HEADER: %p\n", header);
+  write_info();
   return &(hdr[size_of_block(hdr) / sizeof(block_header)]);
 }
 
