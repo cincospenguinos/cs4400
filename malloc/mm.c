@@ -128,7 +128,7 @@ void *mm_malloc(size_t size)
     block_header *blk = first_block_in_chunk(hdr);
 
     while (!terminating_block(blk)) {
-      if(size + OVERHEAD < size_of_block(blk)){
+      if(size + OVERHEAD + 8 < size_of_block(blk)){
 	// TODO: Insert memory here
 	allocate_block(blk, size);
 	break;
@@ -184,14 +184,10 @@ void validate_memory(){
       long addr = (long) blk[1];
       
       // Make sure all headers are aligned on 8
-      if ((long)(blk) % 16 != 8){
-	sprintf(buffer, "Block header alignment error!\n");
+      if((long)(blk) % 16 != 8){
+	sprintf(buffer, "Block alignment error!\n");
 	write_info();
-	long val = ((long)(blk)) % 16;
-	
-	sprintf(buffer, "%i was the result\n", val);
-	write_info();
-	sprintf(buffer, "%p was the address\n", blk);
+	sprintf(buffer, "%p is the offender\n", blk);
 	write_info();
 	error_info();
 	exit(1);
@@ -251,30 +247,29 @@ void validate_memory(){
 
 /* Allocates the amount of space requested. Returns new block pointer */
 static block_header* allocate_block(block_header *blk, size_t size) {
-  block_header *next_header = &blk[size / sizeof(block_header) + 1];
-
-  if(((long)next_header) % 16 != 8){
-    next_header = &next_header[1];
-    size += 8; // Because we moved the next header over by 8
-  }
-
-  sprintf(buffer, "Terminator? %d\n", terminating_block(next_block(next_header)));
-  write_info();
+  // size will always be a multiple of 16! So we move over 16 more
+  size += OVERHEAD + 8;
+  block_header *nxt = &blk[size / sizeof(block_header)];
 
   size_t old_size = size_of_block(blk);
   set_block(1, size, blk);
-  set_block(0, old_size - size, next_header);
+  set_block(0, old_size - size, nxt);
 
-  sprintf(buffer, "Old: %d\tNew: %d\tLeft: %d\t\n", old_size, size_of_block(blk), size_of_block(next_header));
-  write_info();
+  if(!terminating_block(next_block(nxt))){
+    sprintf(buffer, "nxt does not point to terminator!\n");
+    write_info();
+    sprintf(buffer, "nxt points to %p\n", next_block(nxt));
+    write_info();
+    exit(1);
+  }
 
-  block_header *terminator = &next_header[size / sizeof(block_header) + 1]; // +1 for blk's header
-  if(!terminating_block(terminator)){
-    sprintf(buffer, "Error! terminating block is not there!\n");
+  if((long)(nxt) % 16 != 8){
+    sprintf(buffer, "nxt is not 8 aligned!\n");
     write_info();
-    sprintf(buffer, "Calculated: %p\n", terminator);
+    sprintf(buffer, "%p\n", nxt);
     write_info();
-    error_info();
+    sprintf(buffer, "%d\t%d\n", size % 16, size % 8);
+    write_info();
     exit(1);
   }
 
@@ -299,7 +294,7 @@ void error_info(){
 }
 
 static int size_of_block(block_header* hdr){
-  return *hdr & 0xfffffff8;
+  return *hdr & 0xfffffffc;
 }
 
 static int allocated(block_header* hdr){
