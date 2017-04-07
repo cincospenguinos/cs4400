@@ -38,17 +38,16 @@ typedef size_t block_header;
 #define FIRST_BLOCK(page) ((block_header*)&page[1])
 #define NEXT_BLOCK(blk)((block_header*)&blk[(BLOCK_SIZE(blk) + 8) / sizeof(block_header)]) // +8 for header
 #define PAYLOAD_OF(blk)((void*) &blk[1])
-
 // Functions to make our lives easier
 static page_header* new_page(size_t, page_header*);
 static void set_block(block_header*, size_t, int);
+static block_header* allocate_block(block_header*, size_t);
 
-// For debugging
+// Functions to make debugging easier
 static void mem_check();
-
-static char buffer[32];
 static void wr();
 
+static char buffer[32];
 static int page_count = 0;
 static int block_count = 0;
 
@@ -61,6 +60,7 @@ static page_header *first_page;
 int mm_init(void)
 {
   first_page = new_page(DEFAULT_PAGE_SIZE, NULL);
+  page_count = 0;
   
   if(first_page == NULL)
     return -1;
@@ -73,9 +73,28 @@ int mm_init(void)
  * mm_malloc - Allocate a block by using bytes from current_avail,
  *     grabbing a new page if necessary.
  */
-void *mm_malloc(size_t size)
+void* mm_malloc(size_t size)
 {
-  // TODO
+  size = ALIGN(size) + 16; // To ensure space for the headers
+  void *mem; // What we will be returning
+  page_header *pg = first_page;
+
+  while(pg != NULL) {
+    block_header *blk = FIRST_BLOCK(pg);
+
+    while(!(TERMINATOR(blk))){
+      if(BLOCK_SIZE(blk) > size){
+	mem = PAYLOAD_OF(allocate_block(blk, size));
+	return mem;
+      }
+
+
+      blk = NEXT_BLOCK(blk);
+    }
+
+    pg = pg->next;
+  }
+
   mem_check();
   return NULL;
 }
@@ -89,7 +108,7 @@ void mm_free(void *ptr)
   mem_check();
 }
 
-/* Returns the first block header of the new page */
+/* Returns the page header of the new page */
 static page_header* new_page(size_t size, page_header *old) {
   size = PAGE_ALIGN(size);
   void *ptr = mem_map(size);
@@ -107,7 +126,6 @@ static page_header* new_page(size_t size, page_header *old) {
   block_header *first = FIRST_BLOCK(next);
   set_block(first, size - 16, 0); // -16 for page_header and terminating block
   block_header *term = NEXT_BLOCK(first);
-
   set_block(term, 0, 1);
 
   if(!(TERMINATOR(NEXT_BLOCK(first)))){
@@ -116,12 +134,41 @@ static page_header* new_page(size_t size, page_header *old) {
     exit(1);
   }
 
+  sprintf(buffer, "Terminator at %p\n", term);
+  wr();
+
+  // Debugging
+  page_count++;
+  block_count++;
+
   return next;
 }
 
 static void set_block(block_header *hdr, size_t size, int alloc) {
   *hdr = size;
   *hdr += alloc;
+}
+
+/* Allocates the block provided with the size provided */
+static block_header* allocate_block(block_header *hdr, size_t size){
+  size_t old_size = BLOCK_SIZE(hdr);
+  set_block(hdr, size, 1);
+
+  block_header *nxt = NEXT_BLOCK(hdr);
+  set_block(nxt, old_size - BLOCK_SIZE(hdr) - 8, 0); // Why did we have to subtract 8?
+
+  if(!(TERMINATOR(NEXT_BLOCK(nxt)))){
+    sprintf(buffer, "nxt does not point to terminator!\n");
+    wr();
+    sprintf(buffer, "points to %p\n", NEXT_BLOCK(nxt));
+    wr();
+    exit(1);
+  }
+
+  block_count++;
+  mem_check();
+
+  return hdr;
 }
 
 
@@ -133,9 +180,29 @@ static void wr(){
   write(1, buffer, strlen(buffer));
 }
 
+static void error_info(){
+  page_header *pg = first_page;
+  int b = 0;
+  while(pg != NULL){
+    sprintf(buffer, "PAGE %p\n", pg);
+    wr();
+    
+    block_header *blk = FIRST_BLOCK(pg);
+    while(!(TERMINATOR(blk)) && b <= block_count){
+      sprintf(buffer, "\t%p\n", blk);
+      wr();
+      blk = NEXT_BLOCK(blk);
+      b++;
+    }
+
+    pg = pg->next;
+  }
+}
+
 static void mem_check(){
   page_header *pg = first_page;
   int pages = 0;
+  int blocks = 0;
 
   while(pg != NULL) {
     if(pages > page_count){
@@ -145,7 +212,6 @@ static void mem_check(){
     }
 
     block_header *blk = FIRST_BLOCK(pg);
-    int blocks = 0;
 
     while(!(TERMINATOR(blk))){
 
@@ -160,6 +226,9 @@ static void mem_check(){
       if(((long)(blk)) % 16 != 8){
 	sprintf(buffer, "Block alignment error!\n");
 	wr();
+	sprintf(buffer, "Block at %p\n", blk);
+	wr();
+	error_info();
 	exit(1);
       }
 
