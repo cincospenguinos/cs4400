@@ -31,12 +31,13 @@ typedef struct page_header {
 typedef size_t block_header;
 
 // Some defs to help us navigate and manage things
+#define OVERHEAD 2 * sizeof(block_header) // 8 for a header, 8 to preserve alignment
 #define BLOCK_SIZE(blk)(*blk & 0xfffffffffffffff8)
 #define ALLOCATED(blk)(*blk & 0x01)
 #define TERMINATOR(blk)(BLOCK_SIZE(blk) == 0 && ALLOCATED(blk))
 
 #define FIRST_BLOCK(page) ((block_header*)&page[1])
-#define NEXT_BLOCK(blk)((block_header*)&blk[(BLOCK_SIZE(blk) + 8) / sizeof(block_header)]) // +8 for header
+#define NEXT_BLOCK(blk)((block_header*)&blk[BLOCK_SIZE(blk) / sizeof(block_header)])
 #define PAYLOAD_OF(blk)((void*) &blk[1])
 // Functions to make our lives easier
 static page_header* new_page(size_t, page_header*);
@@ -75,7 +76,7 @@ int mm_init(void)
  */
 void* mm_malloc(size_t size)
 {
-  size = ALIGN(size) + 16; // To ensure space for the headers
+  size = ALIGN(size);
   void *mem; // What we will be returning
   page_header *pg = first_page;
 
@@ -83,11 +84,10 @@ void* mm_malloc(size_t size)
     block_header *blk = FIRST_BLOCK(pg);
 
     while(!(TERMINATOR(blk))){
-      if(BLOCK_SIZE(blk) > size){
+      if(BLOCK_SIZE(blk) > size + OVERHEAD){
 	mem = PAYLOAD_OF(allocate_block(blk, size));
 	return mem;
       }
-
 
       blk = NEXT_BLOCK(blk);
     }
@@ -128,12 +128,6 @@ static page_header* new_page(size_t size, page_header *old) {
   block_header *term = NEXT_BLOCK(first);
   set_block(term, 0, 1);
 
-  if(!(TERMINATOR(NEXT_BLOCK(first)))){
-    sprintf(buffer, "new_page does not size properly!\n");
-    wr();
-    exit(1);
-  }
-
   sprintf(buffer, "Terminator at %p\n", term);
   wr();
 
@@ -151,11 +145,12 @@ static void set_block(block_header *hdr, size_t size, int alloc) {
 
 /* Allocates the block provided with the size provided */
 static block_header* allocate_block(block_header *hdr, size_t size){
+  size += OVERHEAD;
   size_t old_size = BLOCK_SIZE(hdr);
   set_block(hdr, size, 1);
 
   block_header *nxt = NEXT_BLOCK(hdr);
-  set_block(nxt, old_size - BLOCK_SIZE(hdr) - 8, 0); // Why did we have to subtract 8?
+  set_block(nxt, old_size - BLOCK_SIZE(hdr), 0);
 
   if(!(TERMINATOR(NEXT_BLOCK(nxt)))){
     sprintf(buffer, "nxt does not point to terminator!\n");
@@ -232,10 +227,21 @@ static void mem_check(){
 	exit(1);
       }
 
-
       block_count++;
       blk = NEXT_BLOCK(blk);
     }
+
+    // Ensure that the terminator is 8 aligned
+    if(((long)(blk)) % 16 != 8){
+      sprintf(buffer, "Terminator not aligned!\n");
+      wr();
+      sprintf(buffer, "Terminator at %p\n", blk);
+      wr();
+      error_info();
+      exit(1);
+    }
+
+    
 
     pg = pg->next;
     pages++;
