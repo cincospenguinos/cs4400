@@ -101,10 +101,13 @@ static chunk_header* get_new_chunk(size_t size, chunk_header *old_chunk){
   c_hdr->next = NULL;
 
   block_header *first = first_block_in_chunk(c_hdr);
-  set_block(0, size - 24, first); // NOTE: the -16 = page header + block header + termination block
+  set_block(0, size - 16, first); // NOTE: the -16 = page header + block header
 
   block_header *last =  last_block_in_chunk(c_hdr, size);
   set_block(1, 0, last);
+
+  sprintf(buffer, "Terminator at %p\n", last);
+  write_info();
 
   chunk_count++;
   block_count++;
@@ -122,7 +125,6 @@ void *mm_malloc(size_t size)
   chunk_header *hdr = first_chunk;
 
   while (hdr != NULL) {
-
     block_header *blk = first_block_in_chunk(hdr);
 
     while (!terminating_block(blk)) {
@@ -249,29 +251,26 @@ void validate_memory(){
 
 /* Allocates the amount of space requested. Returns new block pointer */
 static block_header* allocate_block(block_header *blk, size_t size) {
-  size = ALIGN(size + OVERHEAD);
-  sprintf(buffer, "Size: %d\n", size);
+  block_header *next_header = &blk[size / sizeof(block_header)];
+
+  block_header *herp = next_block(blk);
+  sprintf(buffer, "Terminator? %d\n", terminating_block(herp));
   write_info();
-  block_header *new_hdr = &blk[size / sizeof(block_header)];
-  
-  if ((long) (new_hdr) % 16 != 8){ // move new_hdr by 8 bytes if new_hdr is on payload
-    new_hdr += 1;
-  }
 
   size_t old_size = size_of_block(blk);
+  set_block(1, size, blk);
 
-  // The * 8 below is due to the fact that our addresses are 8 byte aligned, and we
-  // are using the addresses to figure out the size
-  set_block(1, (size_t) ((new_hdr - blk) * 8), blk);
-  set_block(0, (size_t) old_size - (size_t) size_of_block(blk), new_hdr);
+  size_t new_hdr_size = old_size - size;
+  set_block(0, new_hdr_size, next_header);
 
-  //sprintf(buffer, "new_hdr's alignment: %i\n", ((long)(new_hdr) % 16));
-  //write_info();
-  //sprintf(buffer, "new_hdr's address: %p\n", new_hdr);
-  //write_info();
+  sprintf(buffer, "Old: %d\tNew: %d\tLeft: %d\t\n", old_size, size_of_block(blk), size_of_block(next_header));
+  write_info();
 
-  if (terminating_block(new_hdr)){
-    sprintf(buffer, "ERROR! Overwriting termination block!\n");
+  block_header *terminator = next_block(next_header);
+  if(!terminating_block(terminator)){
+    sprintf(buffer, "Error! terminating block is not there!\n");
+    write_info();
+    sprintf(buffer, "Calculated: %p\n", terminator);
     write_info();
     error_info();
     exit(1);
@@ -319,9 +318,6 @@ static block_header* last_block_in_chunk(chunk_header *hdr, size_t chunk_size){
 }
 
 static block_header* next_block(block_header *hdr){
-  block_header *header = &(hdr[size_of_block(hdr) / sizeof(block_header)]);
-  sprintf(buffer, "HEADER: %p\n", header);
-  write_info();
   return &(hdr[size_of_block(hdr) / sizeof(block_header)]);
 }
 
