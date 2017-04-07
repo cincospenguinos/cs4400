@@ -251,22 +251,24 @@ void validate_memory(){
 
 /* Allocates the amount of space requested. Returns new block pointer */
 static block_header* allocate_block(block_header *blk, size_t size) {
-  block_header *next_header = &blk[size / sizeof(block_header)];
+  block_header *next_header = &blk[size / sizeof(block_header) + 1];
 
-  block_header *herp = next_block(blk);
-  sprintf(buffer, "Terminator? %d\n", terminating_block(herp));
+  if(((long)next_header) % 16 != 8){
+    next_header = &next_header[1];
+    size += 8; // Because we moved the next header over by 8
+  }
+
+  sprintf(buffer, "Terminator? %d\n", terminating_block(next_block(next_header)));
   write_info();
 
   size_t old_size = size_of_block(blk);
   set_block(1, size, blk);
-
-  size_t new_hdr_size = old_size - size;
-  set_block(0, new_hdr_size, next_header);
+  set_block(0, old_size - size, next_header);
 
   sprintf(buffer, "Old: %d\tNew: %d\tLeft: %d\t\n", old_size, size_of_block(blk), size_of_block(next_header));
   write_info();
 
-  block_header *terminator = next_block(next_header);
+  block_header *terminator = &next_header[size / sizeof(block_header) + 1]; // +1 for blk's header
   if(!terminating_block(terminator)){
     sprintf(buffer, "Error! terminating block is not there!\n");
     write_info();
@@ -318,7 +320,7 @@ static block_header* last_block_in_chunk(chunk_header *hdr, size_t chunk_size){
 }
 
 static block_header* next_block(block_header *hdr){
-  return &(hdr[size_of_block(hdr) / sizeof(block_header)]);
+  return &(hdr[size_of_block(hdr) / sizeof(block_header)]); // +1 for hdr's header
 }
 
 static int terminating_block(block_header *hdr){
