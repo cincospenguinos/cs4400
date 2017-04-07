@@ -21,13 +21,15 @@
 #define ALIGNMENT 16
 
 /* number of starting chunks */
-#define STARTING_CHUNK_SIZE 1 * 4096
+#define DEFAULT_CHUNK_SIZE 1 * 4096
 
 /* rounds up to the nearest multiple of ALIGNMENT */
 #define ALIGN(size) (((size) + (ALIGNMENT-1)) & ~(ALIGNMENT-1))
 
 /* rounds up to the nearest multiple of mem_pagesize() */
 #define PAGE_ALIGN(size) (((size) + (mem_pagesize()-1)) & ~(mem_pagesize()-1))
+
+#define MAX(a,b) (((a)>(b))?(a):(b))
 
 typedef struct chunk_header {
   struct chunk_header *next;
@@ -44,6 +46,7 @@ static block_header* first_block_in_chunk(chunk_header*);
 static block_header* last_block_in_chunk(chunk_header*, size_t);
 static block_header* next_block(block_header*);
 static int terminating_block(block_header*);
+static void* payload_of(block_header*);
 
 static block_header* allocate_block(block_header*, size_t);
 
@@ -72,12 +75,12 @@ int mm_init(void)
 {
   chunk_count = 0; // debugging
 
-  first_chunk = get_new_chunk(PAGE_ALIGN(STARTING_CHUNK_SIZE), NULL);
+  first_chunk = get_new_chunk(PAGE_ALIGN(DEFAULT_CHUNK_SIZE), NULL);
 
   if(first_chunk == NULL)
     return -1;
 
-  current_avail_size = PAGE_ALIGN(STARTING_CHUNK_SIZE);
+  current_avail_size = PAGE_ALIGN(DEFAULT_CHUNK_SIZE);
   current_avail = mem_map(current_avail_size);
   
   if(current_avail == NULL)
@@ -123,23 +126,33 @@ void *mm_malloc(size_t size)
   size = ALIGN(size);
   void *mem = NULL;
   chunk_header *hdr = first_chunk;
+  chunk_header *prev = NULL;
 
   while (hdr != NULL) {
     block_header *blk = first_block_in_chunk(hdr);
 
     while (!terminating_block(blk)) {
       if(size + OVERHEAD + 8 < size_of_block(blk)){
-	// TODO: Insert memory here
-	allocate_block(blk, size);
+        
+	mem = payload_of(allocate_block(blk, size));
 	break;
       }
       blk = next_block(blk);
     }
 
-    hdr = hdr->next;
+    if (mem != NULL){
+      //return mem;
+    }
 
-    if (mem != NULL) break;
+    prev = hdr;
+    hdr = hdr->next;
   }
+
+  // If we've made it this far, we need a new chunk
+  chunk_header *new_chunk = get_new_chunk(MAX(DEFAULT_CHUNK_SIZE, PAGE_ALIGN(size + OVERHEAD + 8)), prev);
+  mem = payload_of(allocate_block(first_block_in_chunk(new_chunk), size));
+
+  // return mem;
 
   
   ///// This is old stuff ///////
@@ -217,6 +230,7 @@ void validate_memory(){
 	}*/
 
       // Make sure that our block connection is correct
+      
       if(blocks > block_count){
 	// If this error fires, it could be due to overlooking the termination block
 	// in the current chunk. 
@@ -224,9 +238,10 @@ void validate_memory(){
 	write_info();
 	sprintf(buffer, "expected %i; counted %i\n", block_count, blocks);
 	write_info();
+	error_info();
 	exit(1);
       }
-
+      
       blk = next_block(blk);
       blocks++;
     }
@@ -287,8 +302,24 @@ void error_info(){
   write_info();
   sprintf(buffer, "Chunks: %i\n", chunk_count);
   write_info();
-  sprintf(buffer, "Blocks: %i\n", block_count);
+  sprintf(buffer, "Blocks: %i\n\n", block_count);
   write_info();
+  chunk_header *chunk = first_chunk;
+  int b = 0;
+  while(chunk != NULL){
+    sprintf(buffer, "CHUNK %p\n", chunk);
+    write_info();
+    block_header *blk = first_block_in_chunk(chunk);
+
+    while(!terminating_block(blk)){
+      sprintf(buffer, "\t%p\n", blk);
+      write_info();
+      blk = next_block(blk);
+      b++;
+    }
+
+    chunk = chunk->next;
+  }
   sprintf(buffer, "\\\\\\\\\\\\\\\\\\\n");
   write_info();
 }
@@ -320,4 +351,8 @@ static block_header* next_block(block_header *hdr){
 
 static int terminating_block(block_header *hdr){
   return (size_of_block(hdr) == 0) && allocated(hdr);
+}
+
+static void* payload_of(block_header *hdr){
+  return (void*)(&hdr[1]);
 }
