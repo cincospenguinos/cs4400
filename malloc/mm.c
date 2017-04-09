@@ -39,6 +39,9 @@ typedef size_t block_header;
 #define FIRST_BLOCK(page) ((block_header*)&page[1])
 #define NEXT_BLOCK(blk)((block_header*)&blk[BLOCK_SIZE(blk) / sizeof(block_header)])
 #define PAYLOAD_OF(blk)((void*) &blk[1])
+#define HEADER_OF(blk)(&((block_header*)blk)[-1])
+#define MAX(a, b)(a > b ? a : b)
+
 // Functions to make our lives easier
 static page_header* new_page(size_t, page_header*);
 static void set_block(block_header*, size_t, int);
@@ -47,8 +50,9 @@ static block_header* allocate_block(block_header*, size_t);
 // Functions to make debugging easier
 static void mem_check();
 static void wr();
+static void error_info();
 
-static char buffer[32];
+static char buffer[64];
 static int page_count = 0;
 static int block_count = 0;
 
@@ -79,24 +83,32 @@ void* mm_malloc(size_t size)
   size = ALIGN(size);
   void *mem; // What we will be returning
   page_header *pg = first_page;
+  page_header *prev = NULL;
 
   while(pg != NULL) {
     block_header *blk = FIRST_BLOCK(pg);
 
     while(!(TERMINATOR(blk))){
-      if(BLOCK_SIZE(blk) > size + OVERHEAD){
+      if(!(ALLOCATED(blk)) && BLOCK_SIZE(blk) > size + OVERHEAD){
 	mem = PAYLOAD_OF(allocate_block(blk, size));
 	return mem;
       }
 
       blk = NEXT_BLOCK(blk);
     }
-
+    
+    prev = pg;
     pg = pg->next;
   }
 
+  pg = new_page(MAX(DEFAULT_PAGE_SIZE, size), prev);
+  if(pg == NULL) return NULL;
+
+  mem = PAYLOAD_OF(allocate_block(FIRST_BLOCK(pg), size));
+
+  page_count++;
   mem_check();
-  return NULL;
+  return mem;
 }
 
 /*
@@ -104,7 +116,9 @@ void* mm_malloc(size_t size)
  */
 void mm_free(void *ptr)
 {
-  // TODO
+  block_header *blk = HEADER_OF(ptr);
+  set_block(blk, BLOCK_SIZE(blk), 0);
+
   mem_check();
 }
 
@@ -128,8 +142,8 @@ static page_header* new_page(size_t size, page_header *old) {
   block_header *term = NEXT_BLOCK(first);
   set_block(term, 0, 1);
 
-  sprintf(buffer, "Terminator at %p\n", term);
-  wr();
+  //sprintf(buffer, "Terminator at %p\n", term);
+  //wr();
 
   // Debugging
   page_count++;
@@ -139,26 +153,27 @@ static page_header* new_page(size_t size, page_header *old) {
 }
 
 static void set_block(block_header *hdr, size_t size, int alloc) {
+  *hdr = 0;
   *hdr = size;
-  *hdr += alloc;
+  *hdr = *hdr | (0x01 & alloc);
 }
 
 /* Allocates the block provided with the size provided */
 static block_header* allocate_block(block_header *hdr, size_t size){
+  if(ALLOCATED(hdr)){
+    sprintf(buffer, "Attempting to allocate block that has already been allocated!\n");
+    wr();
+    error_info();
+    exit(1);
+  }
+
+
   size += OVERHEAD;
   size_t old_size = BLOCK_SIZE(hdr);
   set_block(hdr, size, 1);
 
   block_header *nxt = NEXT_BLOCK(hdr);
   set_block(nxt, old_size - BLOCK_SIZE(hdr), 0);
-
-  if(!(TERMINATOR(NEXT_BLOCK(nxt)))){
-    sprintf(buffer, "nxt does not point to terminator!\n");
-    wr();
-    sprintf(buffer, "points to %p\n", NEXT_BLOCK(nxt));
-    wr();
-    exit(1);
-  }
 
   block_count++;
   mem_check();
@@ -184,7 +199,7 @@ static void error_info(){
     
     block_header *blk = FIRST_BLOCK(pg);
     while(!(TERMINATOR(blk)) && b <= block_count){
-      sprintf(buffer, "\t%p\n", blk);
+      sprintf(buffer, "\t%p - %d\n", blk, ALLOCATED(blk));
       wr();
       blk = NEXT_BLOCK(blk);
       b++;
