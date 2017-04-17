@@ -1,0 +1,48 @@
+Name: Andre LaFleur
+
+1. What is the full HTTP request sent to the server?
+
+Accepted connection from (155-97-237-118.usahousing.utah.edu, 49286)
+GET / HTTP/1.1
+Host: lab1-21.eng.utah.edu:2112
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Encoding: gzip, deflate, sdch
+Accept-Language: en-US,en;q=0.8
+Cookie: _ga=GA1.2.1792874275.1472774233
+
+2. What URL does the browser use for the request?
+
+http://lab1-21.eng.utah.edu:2112/
+
+3. What is the full HTTP request sent to the server? How is this request different from the first one (not including the URL)?
+    NOTE: Some browsers like Chrome may generate an extra request after the one caused by clicking. This extra request is to 
+    get an icon representing the page, and will look like this: GET /favicon.ico \'85 Make sure to find the request that was created by clicking the button. 
+
+Accepted connection from (155-97-237-118.usahousing.utah.edu, 49297)
+POST /reply HTTP/1.1
+Host: lab1-21.eng.utah.edu:2112
+Connection: keep-alive
+Content-Length: 13
+Cache-Control: max-age=0
+Origin: http://lab1-21.eng.utah.edu:2112
+Upgrade-Insecure-Requests: 1
+User-Agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/57.0.2987.133 Safari/537.36
+Content-Type: application/x-www-form-urlencoded
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Referer: http://lab1-21.eng.utah.edu:2112/
+Accept-Encoding: gzip, deflate
+Accept-Language: en-US,en;q=0.8
+Cookie: _ga=GA1.2.1792874275.1472774233
+
+content=blarg
+
+This is a post request, and it includes the information that was sent by the browser.
+
+4. Which part of this request encodes the information you typed in the text box? Copy the specific line.
+
+The "content" part, at the end of the request:
+
+content=blarg
