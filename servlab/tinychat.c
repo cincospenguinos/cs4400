@@ -16,22 +16,25 @@ void doit(int fd);
 dictionary_t *read_requesthdrs(rio_t *rp);
 void read_postquery(rio_t *rp, dictionary_t *headers, dictionary_t *d);
 void parse_query(const char *uri, dictionary_t *d);
-void serve_form(int fd, const char *pre_content);
+void serve_reply(int fd, const char *username, const char *chatroom);
+void serve_login(int fd, const char *pre_content);
 void clienterror(int fd, char *cause, char *errnum, 
 		 char *shortmsg, char *longmsg);
 static void print_stringdictionary(dictionary_t *d);
 
+static void add_comment(const char *chatroom, const char *username, const char *value);
+
 /**
  * PLAN
  *
- * --> Make the replies show up on the webpage
- * --> Setup frontend to have username and chatroom
- * --> Implement backend to store comments in dictionary
- * --> Make GET /reply show whatever things
- *
- *
- *
+ * --> Front end stuff
+ * --> /conversation?topic=‹topic›
+ * --> /say?user=‹user›&topic=‹topic›&content=‹content›
+ * --> /import?topic=‹topic›&host=‹host›&port=‹port›
  */
+
+// What we'll use to hold all the comments
+static dictionary_t *comments;
 
 int main(int argc, char **argv) 
 {
@@ -56,6 +59,9 @@ int main(int argc, char **argv)
   /* Also, don't stop on broken connections: */
   Signal(SIGPIPE, SIG_IGN);
 
+  /* Create the comments dictionary */
+  comments = make_dictionary(COMPARE_CASE_SENS, free);
+
   while (1) {
     clientlen = sizeof(clientaddr);
     connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
@@ -67,6 +73,8 @@ int main(int argc, char **argv)
       Close(connfd);
     }
   }
+
+  free_dictionary(comments);
 }
 
 /*
@@ -104,24 +112,46 @@ void doit(int fd)
       query = make_dictionary(COMPARE_CASE_SENS, free);
       parse_uriquery(uri, query);
 
-      printf("URI was %s", uri);
-
-      if (!strcasecmp(method, "POST")){
+      /* This was for testing
+      if (!strcasecmp(method, "GET") && starts_with("/test", uri)){
+        dictionary_set(comments, "yo", dictionary_get(query, "content"));
+	clienterror(fd, method, "200", "It Worked", "It worked!");
+      }
+      */
+      
+      /* The user POSTed something - should only be to /reply */
+      if (!strcasecmp(method, "POST") && !strcasecmp(uri, "/reply")){
+	printf(">>> POSTed something to /reply\n");
         read_postquery(&rio, headers, query);
-	char* content = dictionary_get(query, "content");
-	printf("content is %s\n", content);
+	char *username = dictionary_get(query, "username");
+	char *chatroom = dictionary_get(query, "chatroom");
+	char *content = dictionary_get(query, "content");
+
+	if(content != NULL && chatroom != NULL){
+	  printf(">>> Set something in the dictionary\n");
+	  dictionary_set(comments, chatroom, content);
+	}
+
+	serve_reply(fd, username, chatroom);
       }
 
-      if (!strcasecmp(method, "GET") && (strcasecmp(uri, "/") && strcasecmp(uri, "/reply"))){
-	printf("User requested URL that does not exist.\n");
-	clienterror(fd, method, "401", "Forbidden", "You are not permitted to access that URL");
+      /* The user requested the conversation */
+      if (starts_with("/conversation", uri) && !strcasecmp(method, "GET")){
+	// TODO: This - for the bots
+	printf(">>> Request to \"%s\"; probably a bot\n", uri);
+      }
+
+      /* Show the login page */
+      if (!strcasecmp(method, "GET") && !strcasecmp(uri, "/")){
+	printf(">>> User requested main page\n");
+	serve_login(fd, query);
       }
 
       /* For debugging, print the dictionary */
       print_stringdictionary(query);
 
-      /* The start code sends back a text-field form: */
-      serve_form(fd, "Welcome to TinyChat");
+      // If we got this far, then it's a request we shouldn't worry about
+      clienterror(fd, method, "403", "Forbidden", "Not permitted");
 
       /* Clean up */
       free_dictionary(query);
@@ -189,24 +219,70 @@ static char *ok_header(size_t len, const char *content_type) {
   return header;
 }
 
-/*
- * serve_form - sends a form to a client
- */
-void serve_form(int fd, const char *pre_content)
-{
+void serve_login(int fd, const char *pre_content){
+  // TODO: This
   size_t len;
   char *body, *header;
   
   body = append_strings("<html><body>\r\n",
-                        "<p>Welcome to TinyChat</p>",
-                        "\r\n<form action=\"reply\" method=\"post\"",
+                        "<p>Welcome to TinyChat</p>\r\n",
+                        "<form action=\"reply\" method=\"post\"",
                         " enctype=\"application/x-www-form-urlencoded\"",
                         " accept-charset=\"UTF-8\">\r\n",
-                        "<input type=\"text\" name=\"content\">\r\n",
-                        "<input type=\"submit\" value=\"Send\">\r\n",
+                        "<input type=\"text\" name=\"username\" placeholder=\"username\">\r\n",
+			"<input type=\"text\" name=\"chatroom\" placeholder=\"chatroom\">\r\n",
+                        "<input type=\"submit\" value=\"Login\">\r\n",
                         "</form></body></html>\r\n",
                         NULL);
   
+  len = strlen(body);
+
+  /* Send response headers to client */
+  header = ok_header(len, "text/html; charset=utf-8");
+  Rio_writen(fd, header, strlen(header));
+  printf("Response headers:\n");
+  printf("%s", header);
+
+  free(header);
+
+  /* Send response body to client */
+  Rio_writen(fd, body, len);
+
+  free(body);
+}
+
+void serve_reply(int fd, const char *username, const char *chatroom){
+
+  size_t len;
+  char *body, *header;
+  char *herp = (char*)dictionary_get(comments, chatroom);
+
+  if(herp != NULL)
+    body = append_strings("<html><body>\r\n",
+			  "<p>Welcome to TinyChat --- ", chatroom, "</p>\r\n",
+			  "<p>", herp, "</p>\r\n",
+			  "<form action=\"reply\" method=\"post\"",
+			  " enctype=\"application/x-www-form-urlencoded\"",
+			  " accept-charset=\"UTF-8\">\r\n",
+			  "<input type=\"text\" name=\"content\">\r\n",
+			  "<input type=\"submit\" value=\"Send\">\r\n",
+			  "<input type=\"hidden\" name=\"username\" value=\"", username, "\">\r\n",
+			  "<input type=\"hidden\" name=\"chatroom\" value=\"", chatroom, "\">\r\n",
+			  "</form></body></html>\r\n",
+			  NULL);
+  else
+    body = append_strings("<html><body>\r\n",
+			  "<p>Welcome to TinyChat --- ", chatroom, "</p>\r\n",
+		        "<form action=\"reply\" method=\"post\"",
+                        " enctype=\"application/x-www-form-urlencoded\"",
+                        " accept-charset=\"UTF-8\">\r\n",
+                        "<input type=\"text\" name=\"content\">\r\n",
+			"<input type=\"submit\" value=\"Send\">\r\n",
+			"<input type=\"hidden\" name=\"username\" value=\"", username, "\">\r\n",
+			"<input type=\"hidden\" name=\"chatroom\" value=\"", chatroom, "\">\r\n",
+                        "</form></body></html>\r\n",
+                        NULL);
+
   len = strlen(body);
 
   /* Send response headers to client */
