@@ -12,6 +12,14 @@
 #include "dictionary.h"
 #include "more_string.h"
 
+// Some defs to help us organize our code
+#define REQ_ERROR 0
+#define REQ_WEB 1
+#define REQ_CONVERSATION 2
+#define REQ_SAY 3
+#define REQ_IMPORT 4
+#define REQ_LOGIN 5
+
 void doit(int fd);
 dictionary_t *read_requesthdrs(rio_t *rp);
 void read_postquery(rio_t *rp, dictionary_t *headers, dictionary_t *d);
@@ -22,7 +30,8 @@ void clienterror(int fd, char *cause, char *errnum,
 		 char *shortmsg, char *longmsg);
 static void print_stringdictionary(dictionary_t *d);
 
-static void add_comment(const char *chatroom, const char *username, const char *value);
+/* Some helper methods */
+static int what_request(const char *uri, const char *req, dictionary_t *query);
 
 /**
  * PLAN
@@ -112,14 +121,42 @@ void doit(int fd)
       query = make_dictionary(COMPARE_CASE_SENS, free);
       parse_uriquery(uri, query);
 
-      /* This was for testing
-      if (!strcasecmp(method, "GET") && starts_with("/test", uri)){
-        dictionary_set(comments, "yo", dictionary_get(query, "content"));
-	clienterror(fd, method, "200", "It Worked", "It worked!");
+      if(!strcmp(method, "POST"))
+	read_postquery(&rio, headers, query);
+
+      int req_type = what_request(uri, method, query);
+
+      switch(req_type){
+      case REQ_LOGIN:
+	printf(">>> LOGIN REQUEST\n");
+	serve_login(fd, query);
+	break;
+      case REQ_WEB:
+	printf(">>> WEB REQUEST\n");
+	char *chatroom = dictionary_get(query, "chatroom");
+	// TODO: Add a comment here
+	serve_reply(fd, dictionary_get(query, "username"), chatroom);
+	break;
+      case REQ_CONVERSATION:
+	printf(">>> CONVERSATION REQUEST\n");
+	// TODO: This
+	break;
+      case REQ_SAY:
+	printf(">>> SAY REQUEST\n");
+	// TODO: This
+	break;
+      case REQ_IMPORT:
+	printf(">>> IMPORT REQUEST\n");
+	// TODO: This
+	break;
+      case REQ_ERROR:
+      default:
+	printf(">>> ERROR REQUEST");
+	clienterror(fd, method, "500", "Some Kinda Error", "The request you sent is not acceptable.");
       }
-      */
       
       /* The user POSTed something - should only be to /reply */
+      /*
       if (!strcasecmp(method, "POST") && !strcasecmp(uri, "/reply")){
 	printf(">>> POSTed something to /reply\n");
         read_postquery(&rio, headers, query);
@@ -134,6 +171,7 @@ void doit(int fd)
 
 	serve_reply(fd, username, chatroom);
       }
+      */
 
       /* The user requested the conversation */
       if (starts_with("/conversation", uri) && !strcasecmp(method, "GET")){
@@ -151,7 +189,7 @@ void doit(int fd)
       print_stringdictionary(query);
 
       // If we got this far, then it's a request we shouldn't worry about
-      clienterror(fd, method, "403", "Forbidden", "Not permitted");
+      //clienterror(fd, method, "403", "Forbidden", "Not permitted");
 
       /* Clean up */
       free_dictionary(query);
@@ -249,6 +287,28 @@ void serve_login(int fd, const char *pre_content){
   Rio_writen(fd, body, len);
 
   free(body);
+}
+
+static int what_request(const char *uri, const char *req, dictionary_t *query){
+  printf(">>> REQ: %s \t URI: %s\n", req, uri);
+
+  if(!strcasecmp(req, "GET")){
+    if(!strcasecmp(uri, "/"))
+      return REQ_LOGIN;
+  } else if (!strcasecmp(req, "POST")){
+    printf(">>> QUERY: \n");
+    print_stringdictionary(query);
+    printf(">>> username? %d\n", dictionary_get(query, "username") != NULL);
+    printf(">>> chatroom? %d\n", dictionary_get(query, "chatroom") != NULL);
+    if(!strcasecmp(uri, "/reply") && 
+       dictionary_get(query, "username") != NULL && 
+       dictionary_get(query, "chatroom") != NULL) // Browser sent request to /reply
+      return REQ_WEB;
+    else
+      return REQ_ERROR;
+  }
+
+  return REQ_ERROR;
 }
 
 void serve_reply(int fd, const char *username, const char *chatroom){
