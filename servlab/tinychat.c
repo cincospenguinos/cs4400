@@ -128,6 +128,9 @@ void doit(int fd)
 
       int req_type = what_request(uri, method, query);
 
+      // Some vars declared to make things easier on ourselves
+      char *chatroom, *content, *username;
+
       switch(req_type){
       case REQ_LOGIN:
 	printf(">>> LOGIN REQUEST\n");
@@ -135,9 +138,9 @@ void doit(int fd)
 	break;
       case REQ_WEB:
 	printf(">>> WEB REQUEST\n");
-	char *chatroom = dictionary_get(query, "chatroom");
-	char *content = dictionary_get(query, "content");
-	char *username = dictionary_get(query, "username");
+	chatroom = dictionary_get(query, "chatroom");
+	content = dictionary_get(query, "content");
+	username = dictionary_get(query, "username");
 
 	if(content != NULL && strcmp(content, ""))
 	  add_comment(chatroom, username, content);
@@ -147,24 +150,22 @@ void doit(int fd)
       case REQ_CONVERSATION:
 	printf(">>> CONVERSATION REQUEST\n");
 	// /conversation?topic=<topic>
-	char *topic = dictionary_get(query, "topic");
-	printf(">>> Requested topic \"%s\"\n", topic);
-	char *stuff = dictionary_get(comments, topic);
-	printf(">>> HEEEEEEYYYYYYY!!!!!!! Should be handing over %s\n", stuff);
+	chatroom = dictionary_get(query, "topic");
+	char *stuff = dictionary_get(comments, chatroom);
         serve_conversation(fd, stuff);
 	break;
       case REQ_SAY:
 	printf(">>> SAY REQUEST\n");
-	char *room = dictionary_get(query, "topic");
-	char *user = dictionary_get(query, "user");
-	char *cont = dictionary_get(query, "content");
+	chatroom = dictionary_get(query, "topic");
+	username = dictionary_get(query, "user");
+	content = dictionary_get(query, "content");
 
 	if(content == NULL)
 	  content = "";
 
-	add_comment(room, user, cont);
+	add_comment(chatroom, username, content);
 	//printf(">>> Hello\n");
-	serve_reply(fd, user, room);
+	serve_reply(fd, username, chatroom);
 	break;
       case REQ_IMPORT:
 	printf(">>> IMPORT REQUEST\n");
