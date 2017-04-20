@@ -33,6 +33,7 @@ static void print_stringdictionary(dictionary_t *d);
 /* Some helper methods */
 static int what_request(const char *uri, const char *req, dictionary_t *query);
 static void add_comment(char *chatroom, char *username, char *comment);
+static void serve_conversation(int fd, const char *conversation);
 
 /**
  * PLAN
@@ -140,11 +141,17 @@ void doit(int fd)
 
 	if(content != NULL && strcmp(content, ""))
 	  add_comment(chatroom, username, content);
+
 	serve_reply(fd, dictionary_get(query, "username"), chatroom);
 	break;
       case REQ_CONVERSATION:
 	printf(">>> CONVERSATION REQUEST\n");
-	// TODO: This
+	// /conversation?topic=<topic>
+	char *topic = dictionary_get(query, "topic");
+	printf(">>> Requested topic \"%s\"\n", topic);
+	char *stuff = dictionary_get(comments, topic);
+	printf(">>> HEEEEEEYYYYYYY!!!!!!! Should be handing over %s\n", stuff);
+        serve_conversation(fd, stuff);
 	break;
       case REQ_SAY:
 	printf(">>> SAY REQUEST\n");
@@ -157,7 +164,7 @@ void doit(int fd)
       case REQ_ERROR:
       default:
 	printf(">>> ERROR REQUEST");
-	clienterror(fd, method, "500", "Some Kinda Error", "The request you sent is not acceptable.");
+	clienterror(fd, method, "510", "<strong>Some Crazy Error</strong>", "The request you sent is not acceptable. You may have provided too few params, or tried to get something you're not supposed to.");
       }
 
       /* For debugging, print the dictionary */
@@ -231,6 +238,21 @@ static char *ok_header(size_t len, const char *content_type) {
   free(len_str);
 
   return header;
+}
+
+static void serve_conversation(int fd, const char *conversation){
+  char *body = append_strings(conversation, "\r\n", NULL);
+  size_t len = strlen(body);
+  char *header = ok_header(len, "text/plain; charset=utf-8");
+  Rio_writen(fd, header, strlen(header));
+  printf("Response headers:\n");
+  printf("%s", header);
+  free(header);
+
+  Rio_writen(fd, body, len);
+  printf("Body:\n");
+  printf("%s", body);
+  free(body);
 }
 
 void serve_login(int fd, const char *pre_content){ // TODO: Fix the params here
