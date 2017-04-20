@@ -155,7 +155,16 @@ void doit(int fd)
 	break;
       case REQ_SAY:
 	printf(">>> SAY REQUEST\n");
-	// TODO: This
+	char *room = dictionary_get(query, "topic");
+	char *user = dictionary_get(query, "user");
+	char *cont = dictionary_get(query, "content");
+
+	if(content == NULL)
+	  content = "";
+
+	add_comment(room, user, cont);
+	//printf(">>> Hello\n");
+	serve_reply(fd, user, room);
 	break;
       case REQ_IMPORT:
 	printf(">>> IMPORT REQUEST\n");
@@ -294,7 +303,7 @@ static int what_request(const char *uri, const char *req, dictionary_t *query){
       return REQ_LOGIN;
     else if (starts_with("/conversation", uri)) // TODO: Ensure params
       return REQ_CONVERSATION;
-    else if (starts_with("/say", uri)) // TODO: Ensure params
+    else if (starts_with("/say", uri) && dictionary_get(query, "user") && dictionary_get(query, "topic"))
       return REQ_SAY;
     else if (starts_with("/import", uri)) // TODO: Ensure params
       return REQ_IMPORT;
