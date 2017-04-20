@@ -32,6 +32,7 @@ static void print_stringdictionary(dictionary_t *d);
 
 /* Some helper methods */
 static int what_request(const char *uri, const char *req, dictionary_t *query);
+static void add_comment(char *chatroom, char *username, char *comment);
 
 /**
  * PLAN
@@ -134,7 +135,11 @@ void doit(int fd)
       case REQ_WEB:
 	printf(">>> WEB REQUEST\n");
 	char *chatroom = dictionary_get(query, "chatroom");
-	// TODO: Add a comment here
+	char *content = dictionary_get(query, "content");
+	char *username = dictionary_get(query, "username");
+
+	if(content != NULL && strcmp(content, ""))
+	  add_comment(chatroom, username, content);
 	serve_reply(fd, dictionary_get(query, "username"), chatroom);
 	break;
       case REQ_CONVERSATION:
@@ -154,46 +159,17 @@ void doit(int fd)
 	printf(">>> ERROR REQUEST");
 	clienterror(fd, method, "500", "Some Kinda Error", "The request you sent is not acceptable.");
       }
-      
-      /* The user POSTed something - should only be to /reply */
-      /*
-      if (!strcasecmp(method, "POST") && !strcasecmp(uri, "/reply")){
-	printf(">>> POSTed something to /reply\n");
-        read_postquery(&rio, headers, query);
-	char *username = dictionary_get(query, "username");
-	char *chatroom = dictionary_get(query, "chatroom");
-	char *content = dictionary_get(query, "content");
-
-	if(content != NULL && chatroom != NULL){
-	  printf(">>> Set something in the dictionary\n");
-	  dictionary_set(comments, chatroom, content);
-	}
-
-	serve_reply(fd, username, chatroom);
-      }
-      */
-
-      /* The user requested the conversation */
-      if (starts_with("/conversation", uri) && !strcasecmp(method, "GET")){
-	// TODO: This - for the bots
-	printf(">>> Request to \"%s\"; probably a bot\n", uri);
-      }
-
-      /* Show the login page */
-      if (!strcasecmp(method, "GET") && !strcasecmp(uri, "/")){
-	printf(">>> User requested main page\n");
-	serve_login(fd, query);
-      }
 
       /* For debugging, print the dictionary */
       print_stringdictionary(query);
 
-      // If we got this far, then it's a request we shouldn't worry about
-      //clienterror(fd, method, "403", "Forbidden", "Not permitted");
-
       /* Clean up */
       free_dictionary(query);
       free_dictionary(headers);
+
+      printf(">>> CURRENT STATE OF COMMENTS:\n");
+      print_stringdictionary(comments);
+      printf("\n");
     }
 
     /* Clean up status line */
@@ -257,8 +233,7 @@ static char *ok_header(size_t len, const char *content_type) {
   return header;
 }
 
-void serve_login(int fd, const char *pre_content){
-  // TODO: This
+void serve_login(int fd, const char *pre_content){ // TODO: Fix the params here
   size_t len;
   char *body, *header;
   
@@ -292,23 +267,39 @@ void serve_login(int fd, const char *pre_content){
 static int what_request(const char *uri, const char *req, dictionary_t *query){
   printf(">>> REQ: %s \t URI: %s\n", req, uri);
 
-  if(!strcasecmp(req, "GET")){
-    if(!strcasecmp(uri, "/"))
+  if (!strcasecmp(req, "GET")){
+    if (!strcasecmp(uri, "/"))
       return REQ_LOGIN;
+    else if (starts_with("/conversation", uri)) // TODO: Ensure params
+      return REQ_CONVERSATION;
+    else if (starts_with("/say", uri)) // TODO: Ensure params
+      return REQ_SAY;
+    else if (starts_with("/import", uri)) // TODO: Ensure params
+      return REQ_IMPORT;
   } else if (!strcasecmp(req, "POST")){
-    printf(">>> QUERY: \n");
-    print_stringdictionary(query);
-    printf(">>> username? %d\n", dictionary_get(query, "username") != NULL);
-    printf(">>> chatroom? %d\n", dictionary_get(query, "chatroom") != NULL);
     if(!strcasecmp(uri, "/reply") && 
        dictionary_get(query, "username") != NULL && 
-       dictionary_get(query, "chatroom") != NULL) // Browser sent request to /reply
+       dictionary_get(query, "chatroom") != NULL)
       return REQ_WEB;
     else
       return REQ_ERROR;
   }
 
   return REQ_ERROR;
+}
+
+static void add_comment(char *chatroom, char *username, char *comment){
+  char *old = dictionary_get(comments, chatroom);
+
+  if(old == NULL){
+    //printf(">>> Nothing for %s...", chatroom);
+    char *new = append_strings(username, " : ", comment, "\n", NULL);
+    dictionary_set(comments, chatroom, new);
+  } else {
+    //printf(">>> Appending to old comment...");
+    char *new = append_strings(old, username, " : ", comment, "\n", NULL);
+    dictionary_set(comments, chatroom, new);
+  }
 }
 
 void serve_reply(int fd, const char *username, const char *chatroom){
@@ -320,7 +311,7 @@ void serve_reply(int fd, const char *username, const char *chatroom){
   if(herp != NULL)
     body = append_strings("<html><body>\r\n",
 			  "<p>Welcome to TinyChat --- ", chatroom, "</p>\r\n",
-			  "<p>", herp, "</p>\r\n",
+			  "<pre>", herp, "</pre>\r\n"
 			  "<form action=\"reply\" method=\"post\"",
 			  " enctype=\"application/x-www-form-urlencoded\"",
 			  " accept-charset=\"UTF-8\">\r\n",
