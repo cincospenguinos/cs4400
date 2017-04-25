@@ -164,12 +164,20 @@ void doit(int fd)
 	  content = "";
 
 	add_comment(chatroom, username, content);
-	//printf(">>> Hello\n");
 	serve_reply(fd, username, chatroom);
 	break;
       case REQ_IMPORT:
 	printf(">>> IMPORT REQUEST\n");
-	// TODO: This
+	chatroom = dictionary_get(query, "chatroom");
+	char *host = dictionary_get(query, "host");
+	char *port = dictionary_get(query, "port");
+	
+
+	// TODO: Send a GET request to the host provided at conversation?topic=<topic>
+
+	printf(">>> %s:%s\n", host, port);
+        
+	serve_reply(fd, "nobody", chatroom);
 	break;
       case REQ_ERROR:
       default:
@@ -302,11 +310,11 @@ static int what_request(const char *uri, const char *req, dictionary_t *query){
   if (!strcasecmp(req, "GET")){
     if (!strcasecmp(uri, "/"))
       return REQ_LOGIN;
-    else if (starts_with("/conversation", uri)) // TODO: Ensure params
+    else if (starts_with("/conversation", uri) && dictionary_get(query, "topic"))
       return REQ_CONVERSATION;
     else if (starts_with("/say", uri) && dictionary_get(query, "user") && dictionary_get(query, "topic"))
       return REQ_SAY;
-    else if (starts_with("/import", uri)) // TODO: Ensure params
+    else if (starts_with("/import", uri) && dictionary_get(query, "topic") && dictionary_get(query, "host") && dictionary_get(query, "port"))
       return REQ_IMPORT;
   } else if (!strcasecmp(req, "POST")){
     if(!strcasecmp(uri, "/reply") && 
@@ -325,11 +333,11 @@ static void add_comment(char *chatroom, char *username, char *comment){
 
   if(old == NULL){
     //printf(">>> Nothing for %s...", chatroom);
-    char *new = append_strings(username, " : ", comment, "\n", NULL);
+    char *new = append_strings(username, ": ", comment, NULL);
     dictionary_set(comments, chatroom, new);
   } else {
     //printf(">>> Appending to old comment...");
-    char *new = append_strings(old, username, " : ", comment, "\n", NULL);
+    char *new = append_strings(old, username, ": ", comment, NULL);
     dictionary_set(comments, chatroom, new);
   }
 }
